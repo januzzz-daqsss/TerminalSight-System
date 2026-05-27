@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(100vw);
+  }
+
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 90s linear infinite;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+@media print {
+  @page {
+    size: landscape;
+    margin: 1cm;
+  }
+
+  /* Hide UI Elements */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Remove scrollbars and allow full height for printing */
+  html,
+  body,
+  #root,
+  .print-overflow-visible {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Chart Protection */
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+}
