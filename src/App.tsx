@@ -149,12 +149,18 @@ export default function App() {
     useEffect(() => {
         if (window.location.pathname === "/signage") return;
 
+        const savedSettings = localStorage.getItem("slotsight-settings");
+        const settings = savedSettings ? JSON.parse(savedSettings) : { paVolume: 80, language: "bisaya" };
+
         let updated = false;
         const nextBays = bays.map((bay) => {
             if (bay.status === "Overstaying" && !bay.audioPlayed) {
                 const utterance = new SpeechSynthesisUtterance(
                     `Attention. Bay ${bay.id}, ${bay.vehicleType || "Vehicle"}, you have exceeded the loading limit. Please depart immediately.`,
                 );
+                
+                utterance.volume = settings.paVolume / 100;
+
                 window.speechSynthesis.speak(utterance);
                 updated = true;
                 return { ...bay, audioPlayed: true };

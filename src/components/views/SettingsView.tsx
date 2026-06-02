@@ -55,6 +55,7 @@ export function SettingsView() {
         try {
             // Trigger local text-to-speech first as fallback/companion
             const utterance = new SpeechSynthesisUtterance("Testing public address system.");
+            utterance.volume = settings.paVolume / 100; // Apply the configured volume (0.0 to 1.0)
             window.speechSynthesis.speak(utterance);
 
             // Attempt to trigger the backend physical hardware PA system
