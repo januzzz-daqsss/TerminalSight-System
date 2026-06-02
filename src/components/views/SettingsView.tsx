@@ -32,6 +32,7 @@ export function SettingsView() {
     });
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
+    const [isTestingPA, setIsTestingPA] = useState(false);
 
     const handleChange = (key: string, value: any) => {
         setSettings((prev: any) => ({ ...prev, [key]: value }));
@@ -45,6 +46,40 @@ export function SettingsView() {
         localStorage.setItem("slotsight-settings", JSON.stringify(settings));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
+    };
+
+    const handleTestPA = async () => {
+        if (isTestingPA) return;
+        setIsTestingPA(true);
+
+        try {
+            // Trigger local text-to-speech first as fallback/companion
+            const utterance = new SpeechSynthesisUtterance("Testing public address system.");
+            window.speechSynthesis.speak(utterance);
+
+            // Attempt to trigger the backend physical hardware PA system
+            const response = await fetch("http://localhost:5000/api/test-pa", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    language: settings.language,
+                    volume: settings.paVolume
+                }),
+            });
+
+            if (!response.ok) {
+                console.error("Backend PA test failed with status:", response.status);
+            }
+        } catch (error) {
+            console.error("Failed to connect to PA backend:", error);
+        } finally {
+            // Revert state after a few seconds (simulating audio play time)
+            setTimeout(() => {
+                setIsTestingPA(false);
+            }, 3000);
+        }
     };
 
     return (
@@ -201,9 +236,18 @@ export function SettingsView() {
                         </div>
 
                         <div className="pt-4 border-t border-slate-100">
-                            <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border border-slate-200 shadow-sm">
-                                <Play size={16} className="text-indigo-600" />
-                                Test PA System
+                            <button
+                                id="test-pa-btn"
+                                onClick={handleTestPA}
+                                disabled={isTestingPA}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border shadow-sm ${
+                                    isTestingPA 
+                                        ? "bg-indigo-50 text-indigo-400 border-indigo-200 cursor-not-allowed" 
+                                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                                }`}
+                            >
+                                <Play size={16} className={`transition-colors ${isTestingPA ? "text-indigo-400" : "text-indigo-600"}`} />
+                                {isTestingPA ? "Playing Test Audio..." : "Test PA System"}
                             </button>
                         </div>
                     </div>
