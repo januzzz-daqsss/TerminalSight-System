@@ -241,11 +241,10 @@ export function SettingsView() {
                                 id="test-pa-btn"
                                 onClick={handleTestPA}
                                 disabled={isTestingPA}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border shadow-sm ${
-                                    isTestingPA 
-                                        ? "bg-indigo-50 text-indigo-400 border-indigo-200 cursor-not-allowed" 
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border shadow-sm ${isTestingPA
+                                        ? "bg-indigo-50 text-indigo-400 border-indigo-200 cursor-not-allowed"
                                         : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
-                                }`}
+                                    }`}
                             >
                                 <Play size={16} className={`transition-colors ${isTestingPA ? "text-indigo-400" : "text-indigo-600"}`} />
                                 {isTestingPA ? "Playing Test Audio..." : "Test PA System"}

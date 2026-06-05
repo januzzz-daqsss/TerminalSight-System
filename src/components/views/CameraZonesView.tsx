@@ -105,16 +105,28 @@ export function CameraZonesView() {
                         key={cam.id}
                         className="bg-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col border border-slate-700"
                     >
-                        {/* Video Placeholder Area */}
-                        <div className="relative aspect-video bg-slate-900 border-b border-slate-800 flex items-center justify-center">
+                        {/* Video Area (Updated with AI Stream Integration) */}
+                        <div className="relative aspect-video bg-slate-900 border-b border-slate-800 flex items-center justify-center overflow-hidden">
                             {cam.status === "LIVE" ? (
                                 <>
-                                    {/* Grid lines to make it look technical */}
-                                    <div className="absolute inset-0 border border-slate-800/50 m-4 rounded" />
-                                    <Video size={48} className="text-slate-700" />
+                                    {/* --- THE FLASK AI INTEGRATION --- */}
+                                    {cam.name === "Southbound Cam 1" || cam.name === "Northbound Cam 1" ? (
+                                        <img
+                                            src={cam.name === "Southbound Cam 1" ? "http://127.0.0.1:5000/video_feed/southbound_cam1" : "http://127.0.0.1:5000/video_feed/northbound_cam1"}
+                                            alt="Live AI Stream"
+                                            className="absolute inset-0 w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <>
+                                            {/* Fallback for other cameras (Grid lines & Icon) */}
+                                            <div className="absolute inset-0 border border-slate-800/50 m-4 rounded" />
+                                            <Video size={48} className="text-slate-700" />
+                                        </>
+                                    )}
+                                    {/* --------------------------------- */}
 
-                                    {/* Overlays */}
-                                    <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
+                                    {/* Overlays (These now sit elegantly on top of the live video!) */}
+                                    <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
                                         <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded text-white text-xs font-bold font-mono tracking-wide">
                                             {cam.name}{" "}
                                             {cam.assignedBays ? `- ${cam.assignedBays}` : ""}
@@ -128,11 +140,11 @@ export function CameraZonesView() {
                                     </div>
 
                                     {/* Fake timestamp overlay */}
-                                    <div className="absolute bottom-4 left-4 text-white/60 font-mono text-[10px]">
+                                    <div className="absolute bottom-4 left-4 text-white/60 font-mono text-[10px] z-10 bg-black/40 px-2 py-1 rounded">
                                         REC • 00:00:00
                                     </div>
-                                    <div className="absolute bottom-4 right-4 text-emerald-400 font-mono text-[10px]">
-                                        1080p 30fps
+                                    <div className="absolute bottom-4 right-4 text-emerald-400 font-mono text-[10px] z-10 bg-black/40 px-2 py-1 rounded">
+                                        AI ACTIVE
                                     </div>
                                 </>
                             ) : (

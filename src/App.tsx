@@ -55,92 +55,86 @@ export default function App() {
             };
         }
 
-        // Otherwise (Admin Dashboard), run the simulator and broadcast state
+        // ── Admin Dashboard: Poll the Python AI Backend ──
         const channel = new BroadcastChannel("slotsight-sync");
-        let mockYoloTimer = 0;
-
-        const id = setInterval(() => {
+        
+        const fetchAIData = async () => {
             setNow(new Date());
+            
+            try {
+                // Fetch JSON Status & Timer in parallel for speed
+                const [statusRes, timerRes] = await Promise.all([
+                    fetch("http://127.0.0.1:5000/api/status", { mode: 'cors' }),
+                    fetch("http://127.0.0.1:5000/api/timers", { mode: 'cors' })
+                ]);
 
-            setBays((prev) => {
-                let newBays = prev.map((bay) => {
-                    if (bay.status === "Available") return bay;
-                    if (bay.timeRemaining === undefined) return bay;
+                const statusData = await statusRes.json();
+                const timerData = await timerRes.json();
 
-                    const next = bay.timeRemaining - 1;
-                    // Transition occupied → overstaying when timer hits 0
-                    if (bay.status === "Occupied" && next <= 0) {
-                        return { ...bay, status: "Overstaying" as const, timeRemaining: 0 };
-                    }
-                    return { ...bay, timeRemaining: next };
+                setBays((prev) => {
+                    const newBays = prev.map((bay) => {
+                        // Keep time decrementing for other bays in the UI
+                        let nextTime = bay.timeRemaining;
+                        if (nextTime !== undefined && bay.id !== 6 && bay.id !== 1) {
+                            nextTime = Math.max(0, nextTime - 1);
+                        }
+
+                        // Match React Bay ID (e.g., 6) to Python JSON Key (e.g., "Bay_6")
+                        const aiKey = `Bay_${bay.id}`;
+                        const aiStatus = statusData[aiKey];
+
+                        // If backend didn't provide data for this bay, just decrement its timer and continue
+                        if (!aiStatus) {
+                            // If it hit 0 naturally, transition to Overstaying
+                            if (bay.status === "Occupied" && nextTime === 0 && bay.id !== 6 && bay.id !== 1) {
+                                return { ...bay, status: "Overstaying" as const, timeRemaining: 0 };
+                            }
+                            return { ...bay, timeRemaining: nextTime };
+                        }
+
+                        // Normalize Python's ALL_CAPS string to React's Capitalized literal types
+                        let normalizedStatus: "Available" | "Occupied" | "Overstaying" = "Available";
+                        if (aiStatus === "OCCUPIED") normalizedStatus = "Occupied";
+                        if (aiStatus === "OVERSTAYING") normalizedStatus = "Overstaying";
+
+                        // Parse the Timer ONLY if it's Bay 1 or Bay 6 and it's occupied
+                        if ((bay.id === 6 || bay.id === 1) && (normalizedStatus === "Occupied" || normalizedStatus === "Overstaying")) {
+                            const elapsedSeconds = timerData[aiKey] || 0;
+                            // 15 minutes = 900 seconds
+                            const MAX_TIME = 15 * 60;
+                            nextTime = Math.max(0, MAX_TIME - elapsedSeconds);
+
+                            // If countdown hits 0, trigger Overstaying
+                            if (nextTime === 0) {
+                                normalizedStatus = "Overstaying";
+                            }
+                        }
+
+                        return {
+                            ...bay,
+                            status: normalizedStatus,
+                            timeRemaining: nextTime,
+                            vehicleType: bay.id === 6 ? "Bus" : (bay.id === 1 ? "UV Express" : bay.vehicleType) 
+                        };
+                    });
+
+                    // Save and broadcast state to Signage view
+                    const stringifiedBays = JSON.stringify(newBays);
+                    localStorage.setItem("slotsight-state", stringifiedBays);
+                    channel.postMessage(stringifiedBays);
+                    return newBays;
                 });
 
-                // Mock YOLOv8 Simulator: triggers randomly roughly every 10-15 seconds
-                mockYoloTimer++;
-                if (
-                    (mockYoloTimer >= 10 && Math.random() > 0.5) ||
-                    mockYoloTimer >= 15
-                ) {
-                    mockYoloTimer = 0;
+            } catch (error) {
+                // Silent catch: If Python isn't running, the UI just continues with its previous state
+                // This prevents the console from being spammed if the backend crashes
+            }
+        };
 
-                    const availableBays = newBays.filter((b) => b.status === "Available");
-                    const occupiedBays = newBays.filter(
-                        (b) => b.status === "Occupied" || b.status === "Overstaying",
-                    );
-
-                    let isDeparture = false;
-                    if (occupiedBays.length > 0 && availableBays.length === 0) {
-                        isDeparture = true;
-                    } else if (occupiedBays.length > 0 && availableBays.length > 0) {
-                        // 40% chance a vehicle leaves instead of arriving
-                        isDeparture = Math.random() > 0.6;
-                    }
-
-                    if (isDeparture) {
-                        const randomBay =
-                            occupiedBays[Math.floor(Math.random() * occupiedBays.length)];
-                        newBays = newBays.map((bay) =>
-                            bay.id === randomBay.id
-                                ? {
-                                    ...bay,
-                                    status: "Available" as const,
-                                    vehicleType: undefined,
-                                    timeRemaining: undefined,
-                                    audioPlayed: undefined,
-                                }
-                                : bay,
-                        );
-                    } else if (availableBays.length > 0) {
-                        const randomBay =
-                            availableBays[Math.floor(Math.random() * availableBays.length)];
-
-                        // Panabo Terminal Structure: Bays 1 and 10 are strictly for UV Express
-                        const isUVExpress = randomBay.id === 1 || randomBay.id === 10;
-                        const vehicleType = isUVExpress ? "UV Express" : "Bus";
-                        const timeRemaining = isUVExpress ? 10 * 60 : 15 * 60; // 10 mins for UV, 15 mins for Bus
-
-                        newBays = newBays.map((bay) =>
-                            bay.id === randomBay.id
-                                ? {
-                                    ...bay,
-                                    status: "Occupied" as const,
-                                    vehicleType: vehicleType,
-                                    timeRemaining: timeRemaining,
-                                }
-                                : bay,
-                        );
-                    }
-                }
-
-                const stringifiedBays = JSON.stringify(newBays);
-                localStorage.setItem("slotsight-state", stringifiedBays);
-                channel.postMessage(stringifiedBays);
-                return newBays;
-            });
-        }, 1000);
-
+        // Poll the AI backend every 1 second
+        const intervalId = setInterval(fetchAIData, 1000);
         return () => {
-            clearInterval(id);
+            clearInterval(intervalId);
             channel.close();
         };
     }, []);
