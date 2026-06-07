@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+.venv/
+
+# Large Video Files (GitHub blocks files > 100MB)
+public/sample-videos/*.mp4

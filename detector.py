@@ -1,5 +1,5 @@
-# detector.py
 import cv2
+import threading
 from ultralytics import YOLO
 from shapely.geometry import Polygon
 import numpy as np
@@ -24,13 +24,17 @@ slot_arrays_nb = {name: np.array(coords, np.int32) for name, coords in SLOTS_NOR
 
 OCCUPANCY_THRESHOLD = 0.20
 
+# Thread lock to prevent PyTorch from deadlocking when 2 threads call it simultaneously
+ai_lock = threading.Lock()
+
 def analyze_frame(frame, camera="southbound"):
     """
     Takes a raw video frame, runs YOLOv8, calculates IoA, draws the UI, 
     and returns the live status dictionary.
     """
-    # Run YOLOv8 AI
-    results = model(frame, conf=0.5, verbose=False)[0]
+    # Run YOLOv8 AI safely across threads
+    with ai_lock:
+        results = model(frame, conf=0.5, verbose=False)[0]
     
     # Extract AI Bounding Boxes into Shapely Polygons
     detected_vehicles = []
