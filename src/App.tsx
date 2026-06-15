@@ -16,7 +16,7 @@ export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [now, setNow] = useState(new Date());
     const [bays, setBays] = useState<Bay[]>(() => {
-        const saved = localStorage.getItem("slotsight-state");
+        const saved = localStorage.getItem("terminalsight-state");
         if (saved) {
             let parsed = JSON.parse(saved);
             // Hotfix: Clean up previously cached state to enforce structural rules
@@ -42,7 +42,7 @@ export default function App() {
     useEffect(() => {
         // If we are in public signage view, just listen to the broadcast channel
         if (window.location.pathname === "/signage") {
-            const channel = new BroadcastChannel("slotsight-sync");
+            const channel = new BroadcastChannel("terminalsight-sync");
             const id = setInterval(() => setNow(new Date()), 1000);
 
             channel.onmessage = (event) => {
@@ -56,7 +56,7 @@ export default function App() {
         }
 
         // ── Admin Dashboard: Poll the Python AI Backend ──
-        const channel = new BroadcastChannel("slotsight-sync");
+        const channel = new BroadcastChannel("terminalsight-sync");
         
         const fetchAIData = async () => {
             setNow(new Date());
@@ -120,7 +120,7 @@ export default function App() {
 
                     // Save and broadcast state to Signage view
                     const stringifiedBays = JSON.stringify(newBays);
-                    localStorage.setItem("slotsight-state", stringifiedBays);
+                    localStorage.setItem("terminalsight-state", stringifiedBays);
                     channel.postMessage(stringifiedBays);
                     return newBays;
                 });
@@ -143,7 +143,7 @@ export default function App() {
     useEffect(() => {
         if (window.location.pathname === "/signage") return;
 
-        const savedSettings = localStorage.getItem("slotsight-settings");
+        const savedSettings = localStorage.getItem("terminalsight-settings");
         const settings = savedSettings ? JSON.parse(savedSettings) : { paVolume: 80, language: "bisaya" };
 
         let updated = false;
@@ -165,8 +165,8 @@ export default function App() {
         if (updated) {
             setBays(nextBays);
             const stringifiedBays = JSON.stringify(nextBays);
-            localStorage.setItem("slotsight-state", stringifiedBays);
-            const channel = new BroadcastChannel("slotsight-sync");
+            localStorage.setItem("terminalsight-state", stringifiedBays);
+            const channel = new BroadcastChannel("terminalsight-sync");
             channel.postMessage(stringifiedBays);
             channel.close();
         }

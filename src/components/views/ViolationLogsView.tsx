@@ -181,7 +181,7 @@ export function ViolationLogsView() {
         const link = document.createElement("a");
         const dateStr = new Date().toISOString().split("T")[0];
         link.href = url;
-        link.setAttribute("download", `SlotSight_ViolationLogs_${dateStr}.csv`);
+        link.setAttribute("download", `TerminalSight_ViolationLogs_${dateStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -9,6 +9,9 @@ import {
     Sliders,
     Globe,
     RefreshCw,
+    User,
+    Lock,
+    Loader2
 } from "lucide-react";
 
 // ─── Settings Component ───────────────────────────────────────────────────────
@@ -27,12 +30,80 @@ const defaultSettings = {
 
 export function SettingsView() {
     const [settings, setSettings] = useState(() => {
-        const saved = localStorage.getItem("slotsight-settings");
+        const saved = localStorage.getItem("terminalsight-settings");
         return saved ? JSON.parse(saved) : defaultSettings;
     });
 
     const [saveStatus, setSaveStatus] = useState<"idle" | "saved">("idle");
     const [isTestingPA, setIsTestingPA] = useState(false);
+
+    // Account Settings State
+    const currentUser = JSON.parse(localStorage.getItem("terminalsight-user") || '{"username": "admin"}');
+    const [accountStatus, setAccountStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
+    const [accountMsg, setAccountMsg] = useState("");
+    const [newUsername, setNewUsername] = useState(currentUser.username);
+    const [oldPassword, setOldPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+
+    const evaluateStrength = (pw: string) => {
+        if (!pw) return { label: "", color: "bg-slate-200", score: 0 };
+        const hasLower = /[a-z]/.test(pw);
+        const hasUpper = /[A-Z]/.test(pw);
+        const hasNumber = /[0-9]/.test(pw);
+        const hasSymbol = /[@#$%^&*()_+\-=\[\]{}|;:',.<>/?]/.test(pw);
+        const isLong = pw.length >= 12;
+
+        const score = [hasLower, hasUpper, hasNumber, hasSymbol, isLong].filter(Boolean).length;
+
+        if (score === 5) return { label: "Strong", color: "bg-emerald-500", text: "text-emerald-600", score };
+        if (score >= 3) return { label: "Medium", color: "bg-amber-500", text: "text-amber-600", score };
+        return { label: "Weak", color: "bg-red-500", text: "text-red-600", score };
+    };
+
+    const strength = evaluateStrength(newPassword);
+
+    const handleAccountUpdate = async () => {
+        if (!oldPassword) {
+            setAccountMsg("Current password is required.");
+            setAccountStatus("error");
+            return;
+        }
+
+        if (newPassword && strength.score < 5) {
+            setAccountMsg("New password must meet ALL criteria to be 'Strong'.");
+            setAccountStatus("error");
+            return;
+        }
+
+        setAccountStatus("saving");
+        try {
+            const res = await fetch("http://127.0.0.1:5000/api/update_account", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    current_username: currentUser.username,
+                    old_password: oldPassword,
+                    new_username: newUsername,
+                    new_password: newPassword
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setAccountStatus("success");
+                setAccountMsg("Account updated securely!");
+                localStorage.setItem("terminalsight-user", JSON.stringify({ ...currentUser, username: data.new_username }));
+                setOldPassword("");
+                setNewPassword("");
+                setTimeout(() => { setAccountStatus("idle"); setAccountMsg(""); }, 3000);
+            } else {
+                setAccountStatus("error");
+                setAccountMsg(data.message);
+            }
+        } catch (err) {
+            setAccountStatus("error");
+            setAccountMsg("Failed to connect to authentication server.");
+        }
+    };
 
     const handleChange = (key: string, value: any) => {
         setSettings((prev: any) => ({ ...prev, [key]: value }));
@@ -43,7 +114,7 @@ export function SettingsView() {
     };
 
     const handleSave = () => {
-        localStorage.setItem("slotsight-settings", JSON.stringify(settings));
+        localStorage.setItem("terminalsight-settings", JSON.stringify(settings));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
     };
@@ -310,6 +381,113 @@ export function SettingsView() {
                                     Connected (Supabase / Cloud)
                                 </span>
                             </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Card 4: Account Security & Access Settings */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                    <div className="flex items-center gap-2 text-indigo-600 mb-4">
+                        <User size={20} />
+                        <h3 className="text-base font-bold text-slate-800">
+                            Account Security & Access
+                        </h3>
+                    </div>
+                    
+                    {accountMsg && (
+                        <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-bold border ${accountStatus === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                            {accountMsg}
+                        </div>
+                    )}
+
+                    <div className="space-y-5 max-w-2xl">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                Administrator Username
+                            </label>
+                            <div className="relative max-w-md">
+                                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={newUsername}
+                                    onChange={(e) => setNewUsername(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <h4 className="text-sm font-semibold text-slate-700 mb-4">Change Password</h4>
+                            
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                        Current Password <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative max-w-md">
+                                        <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="password"
+                                            placeholder="Required to make changes"
+                                            value={oldPassword}
+                                            onChange={(e) => setOldPassword(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                                        New Password
+                                    </label>
+                                    <div className="relative max-w-md mb-2">
+                                        <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="password"
+                                            placeholder="Leave blank to keep current password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </div>
+                                    
+                                    {/* Strict Password Meter */}
+                                    {newPassword && (
+                                        <div className="max-w-md bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-xs font-bold text-slate-600">Password Strength:</span>
+                                                <span className={`text-xs font-black uppercase tracking-wider ${strength.text}`}>{strength.label}</span>
+                                            </div>
+                                            <div className="flex gap-1 h-1.5 mb-3">
+                                                <div className={`flex-1 rounded-full ${strength.score >= 1 ? strength.color : 'bg-slate-200'}`}></div>
+                                                <div className={`flex-1 rounded-full ${strength.score >= 2 ? strength.color : 'bg-slate-200'}`}></div>
+                                                <div className={`flex-1 rounded-full ${strength.score >= 3 ? strength.color : 'bg-slate-200'}`}></div>
+                                                <div className={`flex-1 rounded-full ${strength.score >= 4 ? strength.color : 'bg-slate-200'}`}></div>
+                                                <div className={`flex-1 rounded-full ${strength.score >= 5 ? strength.color : 'bg-slate-200'}`}></div>
+                                            </div>
+                                            
+                                            <ul className="text-[11px] font-medium space-y-1">
+                                                <li className={/[a-z]/.test(newPassword) ? "text-emerald-600" : "text-slate-500"}>✓ At least one lowercase letter</li>
+                                                <li className={/[A-Z]/.test(newPassword) ? "text-emerald-600" : "text-slate-500"}>✓ At least one uppercase letter</li>
+                                                <li className={/[0-9]/.test(newPassword) ? "text-emerald-600" : "text-slate-500"}>✓ At least one numeric digit (0-9)</li>
+                                                <li className={/[@#$%^&*()_+\-=\[\]{}|;:',.<>/?]/.test(newPassword) ? "text-emerald-600" : "text-slate-500"}>✓ At least one special symbol</li>
+                                                <li className={newPassword.length >= 12 ? "text-emerald-600" : "text-slate-500"}>✓ Minimum 12 characters long</li>
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <button
+                                onClick={handleAccountUpdate}
+                                disabled={accountStatus === "saving"}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-all shadow-md shadow-slate-200"
+                            >
+                                {accountStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                Update Account Credentials
+                            </button>
                         </div>
                     </div>
                 </div>
