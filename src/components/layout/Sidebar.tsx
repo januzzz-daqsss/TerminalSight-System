@@ -39,7 +39,7 @@ export function Sidebar({
                     </div>
                     <div>
                         <p className="text-white font-bold text-sm leading-tight">
-                            SlotSight
+                            TerminalSight
                         </p>
                         <p className="text-slate-400 text-[10px] tracking-widest uppercase">
                             Admin Console
