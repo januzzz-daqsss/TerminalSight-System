@@ -1,11 +1,13 @@
+# detector.py
 import cv2
-import threading
 from ultralytics import YOLO
 from shapely.geometry import Polygon
 import numpy as np
+import threading
 
 # 1. LOAD YOUR MODEL
-model = YOLO("best.pt")
+model = YOLO("trained_models/yolov8n/yolov8n.pt")
+ai_lock = threading.Lock() # Prevents PyTorch CPU threading crashes
 
 # 2. DEFINE YOUR PARKING SLOTS
 SLOTS_SOUTHBOUND = {
@@ -24,15 +26,12 @@ slot_arrays_nb = {name: np.array(coords, np.int32) for name, coords in SLOTS_NOR
 
 OCCUPANCY_THRESHOLD = 0.20
 
-# Thread lock to prevent PyTorch from deadlocking when 2 threads call it simultaneously
-ai_lock = threading.Lock()
-
 def analyze_frame(frame, camera="southbound"):
     """
     Takes a raw video frame, runs YOLOv8, calculates IoA, draws the UI, 
     and returns the live status dictionary.
     """
-    # Run YOLOv8 AI safely across threads
+    # Run YOLOv8 AI (Thread-safe to prevent CPU deadlocks)
     with ai_lock:
         results = model(frame, conf=0.5, verbose=False)[0]
     
