@@ -27,9 +27,9 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
     return (
         <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans">
             {/* Header */}
-            <div className="flex items-center justify-between px-10 py-6 bg-slate-900 border-b-4 border-emerald-600 shadow-2xl flex-shrink-0 z-10">
+            <div className="flex items-center justify-between px-10 py-6 bg-slate-900/95 backdrop-blur-md border-b-4 border-emerald-600 shadow-2xl flex-shrink-0 z-20 relative">
                 <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/50">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/40">
                         <Bus size={32} className="text-white" />
                     </div>
                     <div>
@@ -52,7 +52,13 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col justify-center px-4 py-8 relative overflow-hidden bg-slate-950">
+            <div className="flex-1 flex flex-col justify-center px-4 py-8 relative overflow-hidden bg-gradient-to-br from-slate-950 via-emerald-950/20 to-slate-900">
+                {/* Panabo Theme Glowing Orbs */}
+                <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+                    <div className="absolute w-[800px] h-[800px] bg-emerald-600/30 rounded-full blur-[150px] -top-40 -left-40 animate-[pulse_4s_ease-in-out_infinite]"></div>
+                    <div className="absolute w-[600px] h-[600px] bg-amber-500/20 rounded-full blur-[120px] bottom-0 right-10"></div>
+                </div>
+
                 {/* Decorative Grid Lines */}
                 <div
                     className="absolute inset-0 opacity-10 pointer-events-none z-0"
