@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Lock, Loader2, MonitorSmartphone } from "lucide-react";
+import { User, Lock, Loader2, MonitorSmartphone, Eye, EyeOff } from "lucide-react";
 
 // ─── Admin Login Component ────────────────────────────────────────────────────
 // Secure entry point for the dashboard connected to the SQLite backend.
@@ -18,6 +18,10 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
     const [error, setError] = useState("");
     const [successMsg, setSuccessMsg] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    // Visibility states for hold-to-view
+    const [showPassword, setShowPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
 
     // Password strength evaluator for the reset form
     const evaluateStrength = (pw: string) => {
@@ -191,14 +195,24 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                             <div className="relative">
                                 <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••••••"
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-300 hover:bg-white"
+                                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-300 hover:bg-white"
                                     autoComplete="current-password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onMouseDown={() => setShowPassword(true)}
+                                    onMouseUp={() => setShowPassword(false)}
+                                    onMouseLeave={() => setShowPassword(false)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                                    title="Hold to show password"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
                         </div>
 
@@ -259,14 +273,27 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
                                 New Password
                             </label>
-                            <input
-                                type="password"
-                                placeholder="Enter new strong password"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-2"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                required
-                            />
+                            <div className="relative mb-2">
+                                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type={showNewPassword ? "text" : "password"}
+                                    placeholder="Enter new strong password"
+                                    className="w-full pl-10 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onMouseDown={() => setShowNewPassword(true)}
+                                    onMouseUp={() => setShowNewPassword(false)}
+                                    onMouseLeave={() => setShowNewPassword(false)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600 transition-colors cursor-pointer"
+                                    title="Hold to show password"
+                                >
+                                    {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
                             {/* Strict Password Meter */}
                             {newPassword && (
                                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 mb-2">
