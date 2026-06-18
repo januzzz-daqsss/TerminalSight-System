@@ -30,29 +30,31 @@ export function PublicBayCard({ bay }: { bay: Bay }) {
 
     return (
         <div
-            className={`relative flex-1 h-[28vh] -skew-x-[20deg] border-4 rounded-xl flex items-center justify-center transition-all ${cardClass} backdrop-blur-sm overflow-hidden`}
+            className={`relative flex-1 h-[32vh] lg:h-[30vh] -skew-x-[15deg] border-2 rounded-xl flex items-center justify-center transition-all ${cardClass} backdrop-blur-sm overflow-hidden min-w-0`}
         >
             {/* Inner wrapper to un-skew content */}
-            <div className="absolute inset-0 skew-x-[20deg] flex flex-col items-center justify-center p-6 text-center">
-                <h3 className="text-white font-black text-5xl tracking-tighter mb-2 drop-shadow-lg">
+            <div className="absolute inset-0 skew-x-[15deg] flex flex-col items-center justify-between py-3 px-1 md:py-4 md:px-2 text-center h-full">
+                <h3 className="text-white font-black text-xl lg:text-2xl tracking-tighter drop-shadow-md whitespace-nowrap">
                     BAY {bay.id}
                 </h3>
 
-                {bay.vehicleType && (
-                    <div className="flex items-center gap-2 mb-2 bg-slate-900/60 px-4 py-2 rounded-full border border-slate-700">
+                {bay.vehicleType ? (
+                    <div className="flex items-center gap-1.5 bg-slate-900/60 px-2 py-1 rounded-full border border-slate-700 whitespace-nowrap">
                         {bay.vehicleType === "Bus" ? (
-                            <Bus size={20} className="text-indigo-400" />
+                            <Bus size={14} className="text-emerald-400 flex-shrink-0" />
                         ) : (
-                            <Car size={20} className="text-indigo-400" />
+                            <Car size={14} className="text-emerald-400 flex-shrink-0" />
                         )}
-                        <span className="text-white font-bold text-lg">
+                        <span className="text-white font-bold text-xs lg:text-sm">
                             {bay.vehicleType}
                         </span>
                     </div>
+                ) : (
+                    <div className="h-6"></div> // Spacer to keep layout balanced
                 )}
 
                 <div
-                    className={`font-black text-2xl tracking-widest mt-auto ${textClass} drop-shadow-md`}
+                    className={`font-black text-[10px] lg:text-xs tracking-widest ${textClass} drop-shadow-md whitespace-nowrap`}
                 >
                     {statusText}
                 </div>

@@ -220,7 +220,7 @@ export function AnalyticsView() {
                         <select
                             value={dateRange}
                             onChange={(e) => setDateRange(e.target.value as any)}
-                            className="appearance-none flex items-center gap-2 bg-white border border-slate-200 text-slate-600 pl-9 pr-8 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                            className="appearance-none flex items-center gap-2 bg-white border border-slate-200 text-slate-600 pl-9 pr-8 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                         >
                             <option value="Today">Today</option>
                             <option value="Last 7 Days">Last 7 Days</option>
@@ -237,7 +237,7 @@ export function AnalyticsView() {
             {/* KPI Cards */}
             <div className="grid grid-cols-3 gap-5">
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print-break-avoid">
-                    <div className="flex items-center gap-2 text-indigo-600 mb-1">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-1">
                         <Clock size={18} />
                         <span className="text-sm font-semibold text-slate-600">
                             Avg Turnaround Time
@@ -455,7 +455,7 @@ export function AnalyticsView() {
                     <div className="relative print-hide">
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
-                            className="flex items-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                            className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                         >
                             <Download size={14} />
                             Export CSV/PDF

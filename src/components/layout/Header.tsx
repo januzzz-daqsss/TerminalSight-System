@@ -8,7 +8,7 @@ const MOCK_NOTIFICATIONS = [
         message:
             "Bay 7 (Bus) has exceeded the 15-minute limit. Audio PA warning dispatched.",
         time: "Just now",
-        timeClass: "text-indigo-600 font-semibold",
+        timeClass: "text-emerald-600 font-semibold",
         Icon: AlertTriangle,
         iconColor: "text-red-600",
         iconBg: "bg-red-100",
@@ -20,7 +20,7 @@ const MOCK_NOTIFICATIONS = [
         message:
             "Southbound Camera 2 is experiencing packet loss. Retrying connection...",
         time: "5 mins ago",
-        timeClass: "text-indigo-600 font-semibold",
+        timeClass: "text-emerald-600 font-semibold",
         Icon: VideoOff,
         iconColor: "text-amber-600",
         iconBg: "bg-amber-100",
@@ -75,7 +75,7 @@ export function Header({
             <div className="relative">
                 <button
                     onClick={() => setShowNotifications(!showNotifications)}
-                    className={`relative p-2 rounded-xl transition-colors ${showNotifications ? "bg-indigo-50 text-indigo-600" : "hover:bg-slate-100 text-slate-600"}`}
+                    className={`relative p-2 rounded-xl transition-colors ${showNotifications ? "bg-emerald-50 text-emerald-600" : "hover:bg-slate-100 text-slate-600"}`}
                 >
                     <Bell size={20} />
                     {unreadCount > 0 && (
@@ -95,7 +95,7 @@ export function Header({
                             </h3>
                             <button
                                 onClick={() => setUnreadCount(0)}
-                                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                className="text-xs font-semibold text-emerald-600 hover:text-emerald-800 transition-colors"
                             >
                                 Mark all as read
                             </button>
@@ -142,7 +142,7 @@ export function Header({
                                     setShowNotifications(false);
                                     onViewViolations();
                                 }}
-                                className="w-full text-center text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+                                className="w-full text-center text-xs font-bold text-emerald-600 hover:text-emerald-800 transition-colors"
                             >
                                 View all violation logs
                             </button>

@@ -168,7 +168,7 @@ export function SettingsView() {
             <div className="flex-1 space-y-6 pb-6">
                 {/* Card 1: Queue & Timer Configurations */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center gap-2 text-indigo-600 mb-4">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-4">
                         <Sliders size={20} />
                         <h3 className="text-base font-bold text-slate-800">
                             Queue & Timer Configurations
@@ -189,7 +189,7 @@ export function SettingsView() {
                                             parseInt(e.target.value) || 0,
                                         )
                                     }
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 <p className="text-xs text-slate-500 mt-1">
                                     Allowed docking time before overstay alert.
@@ -205,7 +205,7 @@ export function SettingsView() {
                                     onChange={(e) =>
                                         handleChange("uvGracePeriod", parseInt(e.target.value) || 0)
                                     }
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 <p className="text-xs text-slate-500 mt-1">
                                     Allowed docking time before overstay alert.
@@ -229,7 +229,7 @@ export function SettingsView() {
                                     onChange={(e) => handleChange("autoReset", e.target.checked)}
                                     className="sr-only peer"
                                 />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                             </label>
                         </div>
                     </div>
@@ -237,7 +237,7 @@ export function SettingsView() {
 
                 {/* Card 2: Audio PA System Settings */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center gap-2 text-indigo-600 mb-4">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-4">
                         <Volume2 size={20} />
                         <h3 className="text-base font-bold text-slate-800">
                             Audio PA System Settings
@@ -255,7 +255,7 @@ export function SettingsView() {
                                     onChange={(e) =>
                                         handleChange("warningTime", parseInt(e.target.value) || 0)
                                     }
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                                 <p className="text-xs text-slate-500 mt-1">
                                     Trigger voice alert when X minutes remain.
@@ -273,7 +273,7 @@ export function SettingsView() {
                                     <select
                                         value={settings.language}
                                         onChange={(e) => handleChange("language", e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
+                                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none"
                                     >
                                         <option value="bisaya">Bisaya / Cebuano</option>
                                         <option value="tagalog">Tagalog</option>
@@ -291,7 +291,7 @@ export function SettingsView() {
                                 <label className="block text-sm font-semibold text-slate-700">
                                     PA Speaker Volume
                                 </label>
-                                <span className="text-xs font-bold text-indigo-600">
+                                <span className="text-xs font-bold text-emerald-600">
                                     {settings.paVolume}%
                                 </span>
                             </div>
@@ -303,7 +303,7 @@ export function SettingsView() {
                                 onChange={(e) =>
                                     handleChange("paVolume", parseInt(e.target.value) || 0)
                                 }
-                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
                             />
                         </div>
 
@@ -312,12 +312,12 @@ export function SettingsView() {
                                 id="test-pa-btn"
                                 onClick={handleTestPA}
                                 disabled={isTestingPA}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors border shadow-sm ${isTestingPA
-                                        ? "bg-indigo-50 text-indigo-400 border-indigo-200 cursor-not-allowed"
-                                        : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 border shadow-sm ${isTestingPA
+                                        ? "bg-emerald-50 text-emerald-400 border-emerald-200 cursor-not-allowed"
+                                        : "bg-slate-100 hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 border-slate-200 hover:scale-105"
                                     }`}
                             >
-                                <Play size={16} className={`transition-colors ${isTestingPA ? "text-indigo-400" : "text-indigo-600"}`} />
+                                <Play size={16} className={`transition-colors ${isTestingPA ? "text-emerald-400" : "text-emerald-600"}`} />
                                 {isTestingPA ? "Playing Test Audio..." : "Test PA System"}
                             </button>
                         </div>
@@ -326,7 +326,7 @@ export function SettingsView() {
 
                 {/* Card 3: Cloud Synchronization Settings */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center gap-2 text-indigo-600 mb-4">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-4">
                         <Cloud size={20} />
                         <h3 className="text-base font-bold text-slate-800">
                             Cloud Synchronization Settings
@@ -349,7 +349,7 @@ export function SettingsView() {
                                     onChange={(e) => handleChange("cloudSync", e.target.checked)}
                                     className="sr-only peer"
                                 />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
                             </label>
                         </div>
 
@@ -368,7 +368,7 @@ export function SettingsView() {
                                     onChange={(e) =>
                                         handleChange("syncInterval", parseInt(e.target.value) || 0)
                                     }
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
                         </div>
@@ -387,7 +387,7 @@ export function SettingsView() {
 
                 {/* Card 4: Account Security & Access Settings */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <div className="flex items-center gap-2 text-indigo-600 mb-4">
+                    <div className="flex items-center gap-2 text-emerald-600 mb-4">
                         <User size={20} />
                         <h3 className="text-base font-bold text-slate-800">
                             Account Security & Access
@@ -411,7 +411,7 @@ export function SettingsView() {
                                     type="text"
                                     value={newUsername}
                                     onChange={(e) => setNewUsername(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 />
                             </div>
                         </div>
@@ -431,7 +431,7 @@ export function SettingsView() {
                                             placeholder="Required to make changes"
                                             value={oldPassword}
                                             onChange={(e) => setOldPassword(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         />
                                     </div>
                                 </div>
@@ -447,7 +447,7 @@ export function SettingsView() {
                                             placeholder="Leave blank to keep current password"
                                             value={newPassword}
                                             onChange={(e) => setNewPassword(e.target.value)}
-                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                         />
                                     </div>
                                     
@@ -483,7 +483,7 @@ export function SettingsView() {
                             <button
                                 onClick={handleAccountUpdate}
                                 disabled={accountStatus === "saving"}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-all shadow-md shadow-slate-200"
+                                className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-sm font-bold transition-all duration-300 hover:scale-105 shadow-md shadow-slate-200"
                             >
                                 {accountStatus === "saving" ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                                 Update Account Credentials
@@ -497,14 +497,14 @@ export function SettingsView() {
             <div className="sticky bottom-0 -mx-5 -mb-5 px-5 py-4 bg-white/90 backdrop-blur-sm border-t border-slate-200 flex justify-end gap-3 rounded-b-2xl shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.05)]">
                 <button
                     onClick={handleReset}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors border border-slate-200"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all duration-300 hover:scale-105 border border-slate-200"
                 >
                     <RotateCcw size={16} />
                     Reset to Defaults
                 </button>
                 <button
                     onClick={handleSave}
-                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-all shadow-sm ${saveStatus === "saved" ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200"}`}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-300 hover:scale-105 shadow-sm ${saveStatus === "saved" ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"}`}
                 >
                     {saveStatus === "saved" ? (
                         <CheckCircle2 size={16} />

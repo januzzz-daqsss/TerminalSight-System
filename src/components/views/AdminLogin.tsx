@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Lock, ShieldCheck, Loader2 } from "lucide-react";
+import { User, Lock, Loader2, MonitorSmartphone } from "lucide-react";
 
 // ─── Admin Login Component ────────────────────────────────────────────────────
 // Secure entry point for the dashboard connected to the SQLite backend.
@@ -124,30 +124,24 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
         }
     };
     return (
-        <div className="flex h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 items-center justify-center relative overflow-hidden">
+        <div className="flex h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 items-center justify-center relative overflow-hidden">
             {/* Subtle background geometric pattern */}
-            <div
-                className="absolute inset-0 opacity-10 pointer-events-none"
-                style={{
-                    backgroundImage: "radial-gradient(#4f46e5 1px, transparent 1px)",
-                    backgroundSize: "32px 32px",
-                }}
-            ></div>
-            <div className="absolute w-[800px] h-[800px] bg-indigo-500/10 blur-[100px] rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+            <div className="absolute inset-0 opacity-10">
+                <div className="absolute w-96 h-96 bg-amber-400 rounded-full blur-[100px] -top-20 -left-20 animate-pulse"></div>
+                <div className="absolute w-[500px] h-[500px] bg-emerald-500 rounded-full blur-[120px] bottom-0 right-0"></div>
+            </div>
 
-            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative z-10 mx-4 border border-slate-100">
-                <div className="flex flex-col items-center text-center mb-8">
-                    <div className="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4">
-                        <ShieldCheck size={32} className="text-white" />
+            <div className="bg-white/95 backdrop-blur-md p-10 rounded-[2rem] shadow-2xl w-full max-w-md relative z-10 border border-white/20 transform transition-all hover:scale-[1.01] duration-500 mx-4">
+                <div className="flex flex-col items-center mb-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 mb-5 transform transition-transform hover:rotate-12 duration-300">
+                        <MonitorSmartphone size={40} className="text-white" />
                     </div>
-                    <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight mb-1">
-                        TerminalSight
-                    </h1>
-                    <p className="text-indigo-600 text-xs font-bold uppercase tracking-widest mb-3">
-                        Admin Console
+                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">TerminalSight</h1>
+                    <p className="text-emerald-600 font-bold tracking-widest text-xs uppercase mt-1 mb-2">
+                        Panabo City
                     </p>
-                    <p className="text-slate-500 text-sm leading-relaxed max-w-xs">
-                        Panabo City Terminal Queue Management System
+                    <p className="text-slate-500 text-sm leading-relaxed max-w-xs text-center">
+                        Terminal Queue Management System
                     </p>
                 </div>
 
@@ -164,63 +158,57 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
                 {view === "login" && (
                     <form className="space-y-5" onSubmit={handleLogin}>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                            Administrator ID
-                        </label>
-                        <div className="relative">
-                            <User
-                                size={18}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Enter your username"
-                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="flex justify-between items-end mb-2">
-                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                                Password
+                        <div>
+                            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                Administrator ID
                             </label>
-                            <button 
-                                type="button"
-                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
-                                onClick={() => { setView("request_otp"); setError(""); setSuccessMsg(""); }}
-                            >
-                                Forgot password?
-                            </button>
+                            <div className="relative">
+                                <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Enter your admin ID"
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-300 hover:bg-white"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    required
+                                />
+                            </div>
                         </div>
-                        <div className="relative">
-                            <Lock
-                                size={18}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
-                            <input
-                                type="password"
-                                placeholder="••••••••••••"
-                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
-                                autoComplete="current-password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                            />
-                        </div>
-                    </div>
 
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-bold rounded-xl transition-all duration-200 shadow-md shadow-indigo-200 flex items-center justify-center"
-                    >
-                        {isLoading ? <Loader2 size={20} className="animate-spin" /> : "Log In"}
-                    </button>
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                    Password
+                                </label>
+                                <button 
+                                    type="button"
+                                    className="text-xs font-bold text-emerald-600 hover:text-amber-500 transition-colors duration-300"
+                                    onClick={() => { setView("request_otp"); setError(""); setSuccessMsg(""); }}
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                            <div className="relative">
+                                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    type="password"
+                                    placeholder="••••••••••••"
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-300 hover:bg-white"
+                                    autoComplete="current-password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-amber-500 text-white text-sm font-bold rounded-xl transition-all duration-500 shadow-md hover:shadow-lg hover:-translate-y-1 flex items-center justify-center"
+                        >
+                            {isLoading ? <Loader2 size={20} className="animate-spin" /> : "Log In"}
+                        </button>
                 </form>
                 )}
 
@@ -228,24 +216,24 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                     <form className="space-y-5" onSubmit={handleRequestOTP}>
                         <div>
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                                Phone Number or Email
+                                Email Address
                             </label>
                             <div className="relative">
                                 <User size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
-                                    type="text"
-                                    placeholder="e.g. +639123456789 or admin@email.com"
-                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    type="email"
+                                    placeholder="e.g. admin@email.com"
+                                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all hover:bg-white"
                                     value={contact}
                                     onChange={(e) => setContact(e.target.value)}
                                     required
                                 />
                             </div>
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-md flex justify-center">
+                        <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1 flex justify-center">
                             {isLoading ? <Loader2 size={20} className="animate-spin" /> : "Send OTP"}
                         </button>
-                        <button type="button" onClick={() => { setView("login"); setError(""); }} className="w-full py-3 px-4 bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 text-sm font-bold rounded-xl transition-all">
+                        <button type="button" onClick={() => { setView("login"); setError(""); }} className="w-full py-3 px-4 bg-white text-slate-600 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 text-sm font-bold rounded-xl transition-all duration-300">
                             Back to Login
                         </button>
                     </form>
@@ -261,7 +249,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                                 type="text"
                                 maxLength={6}
                                 placeholder="123456"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-center tracking-[0.5em] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-center tracking-[0.5em] font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                                 value={otp}
                                 onChange={(e) => setOtp(e.target.value)}
                                 required
@@ -274,7 +262,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                             <input
                                 type="password"
                                 placeholder="Enter new strong password"
-                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-2"
+                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-2"
                                 value={newPassword}
                                 onChange={(e) => setNewPassword(e.target.value)}
                                 required
@@ -303,10 +291,10 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                                 </div>
                             )}
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-md flex justify-center">
+                        <button type="submit" disabled={isLoading} className="w-full py-3 px-4 bg-emerald-600 hover:bg-amber-500 text-white text-sm font-bold rounded-xl transition-all duration-300 shadow-md hover:shadow-lg hover:-translate-y-1 flex justify-center">
                             {isLoading ? <Loader2 size={20} className="animate-spin" /> : "Securely Reset Password"}
                         </button>
-                        <button type="button" onClick={() => { setView("login"); setError(""); }} className="w-full py-3 px-4 bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 text-sm font-bold rounded-xl transition-all">
+                        <button type="button" onClick={() => { setView("login"); setError(""); }} className="w-full py-3 px-4 bg-white text-slate-600 hover:text-red-600 hover:bg-red-50 border border-slate-200 hover:border-red-200 text-sm font-bold rounded-xl transition-all duration-300">
                             Cancel
                         </button>
                     </form>

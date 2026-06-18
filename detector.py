@@ -6,7 +6,7 @@ import numpy as np
 import threading
 
 # 1. LOAD YOUR MODEL
-model = YOLO("trained_models/yolov8n/yolov8n.pt")
+model = YOLO("trained_models/yolov8n/best.pt")
 ai_lock = threading.Lock() # Prevents PyTorch CPU threading crashes
 
 # 2. DEFINE YOUR PARKING SLOTS
