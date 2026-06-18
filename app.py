@@ -60,8 +60,8 @@ def init_db():
             "INSERT INTO admin_users (username, password_hash, salt, phone_number, email) VALUES (?, ?, ?, ?, ?)",
             (default_username, password_hash, salt, default_phone, default_email)
         )
-        print(f"✅ Created default admin user: '{default_username}' (Password: '{default_password}')")
         
+
     conn.commit()
     conn.close()
 
@@ -85,7 +85,6 @@ def send_email_async(to_email, otp):
         server.login(SMTP_SENDER_EMAIL, SMTP_APP_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"📧 Successfully sent actual email OTP to {to_email}")
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
 
