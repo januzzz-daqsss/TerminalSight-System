@@ -34,7 +34,7 @@ export function Sidebar({
             {/* Branding */}
             <div className="px-6 py-6 border-b border-slate-700/60">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center shadow-lg">
                         <Bus size={18} className="text-white" />
                     </div>
                     <div>
@@ -69,7 +69,7 @@ export function Sidebar({
                             key={id}
                             onClick={() => setActiveTab(id)}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${active
-                                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/30"
+                                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/30"
                                     : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                                 }`}
                         >
@@ -85,7 +85,7 @@ export function Sidebar({
                         onClick={() =>
                             window.open("/signage", "_blank", "noopener,noreferrer")
                         }
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30"
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
                     >
                         <MonitorUp size={17} />
                         <span className="flex-1 text-left">Launch Public Display</span>
@@ -105,8 +105,8 @@ export function Sidebar({
             {/* Footer */}
             <div className="px-4 py-4 border-t border-slate-700/60">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                        <span className="text-indigo-300 text-xs font-bold">AD</span>
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <span className="text-emerald-300 text-xs font-bold">AD</span>
                     </div>
                     <div>
                         <p className="text-slate-200 text-xs font-semibold">Admin</p>

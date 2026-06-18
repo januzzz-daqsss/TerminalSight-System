@@ -11,12 +11,12 @@ export function DetectionFeed() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <h2 className="text-slate-800 font-semibold text-sm">
                         Recent Detections
                     </h2>
                 </div>
-                <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
                     YOLOv8 Live
                 </span>
             </div>
@@ -28,7 +28,7 @@ export function DetectionFeed() {
                         className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50/80 transition-colors"
                     >
                         <div
-                            className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${d.action.includes("Overstay") ? "bg-red-100" : "bg-indigo-100"}`}
+                            className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${d.action.includes("Overstay") ? "bg-red-100" : "bg-emerald-100"}`}
                         >
                             {d.vehicle === "Bus" ? (
                                 <Bus
@@ -36,7 +36,7 @@ export function DetectionFeed() {
                                     className={
                                         d.action.includes("Overstay")
                                             ? "text-red-600"
-                                            : "text-indigo-600"
+                                            : "text-emerald-600"
                                     }
                                 />
                             ) : (
@@ -45,7 +45,7 @@ export function DetectionFeed() {
                                     className={
                                         d.action.includes("Overstay")
                                             ? "text-red-600"
-                                            : "text-indigo-600"
+                                            : "text-emerald-600"
                                     }
                                 />
                             )}
@@ -173,8 +173,8 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
         {
             label: "Utilization",
             value: `${utilization}%`,
-            color: "text-indigo-700",
-            bg: "bg-indigo-100",
+            color: "text-emerald-700",
+            bg: "bg-emerald-100",
         },
     ];
 
@@ -232,7 +232,7 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
                         {/* Northbound Terminal — Bays 1–5 */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
-                                <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block" />
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
                                 <h3 className="text-slate-200 font-extrabold text-xs uppercase tracking-widest">
                                     Northbound Terminal
                                 </h3>

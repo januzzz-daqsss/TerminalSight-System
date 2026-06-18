@@ -27,16 +27,16 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
     return (
         <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans">
             {/* Header */}
-            <div className="flex items-center justify-between px-10 py-6 bg-slate-900 border-b-4 border-indigo-600 shadow-2xl flex-shrink-0 z-10">
+            <div className="flex items-center justify-between px-10 py-6 bg-slate-900 border-b-4 border-emerald-600 shadow-2xl flex-shrink-0 z-10">
                 <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/50">
+                    <div className="w-16 h-16 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/50">
                         <Bus size={32} className="text-white" />
                     </div>
                     <div>
                         <h1 className="text-white font-black text-4xl tracking-tight">
                             PANABO CITY BUS TERMINAL
                         </h1>
-                        <p className="text-indigo-400 font-bold text-xl tracking-widest uppercase mt-1">
+                        <p className="text-emerald-400 font-bold text-xl tracking-widest uppercase mt-1">
                             Live Bay Status
                         </p>
                     </div>
@@ -51,11 +51,11 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
                 </div>
             </div>
 
-            {/* Main Grid */}
-            <div className="flex-1 flex flex-col justify-center px-10 py-8 relative overflow-hidden bg-slate-950">
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col justify-center px-4 py-8 relative overflow-hidden bg-slate-950">
                 {/* Decorative Grid Lines */}
                 <div
-                    className="absolute inset-0 opacity-10 pointer-events-none"
+                    className="absolute inset-0 opacity-10 pointer-events-none z-0"
                     style={{
                         backgroundImage:
                             "linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)",
@@ -63,43 +63,46 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
                     }}
                 ></div>
 
-                {/* Northbound Row */}
-                <div className="relative z-10 mb-8">
-                    <h2 className="text-slate-300 font-black text-3xl mb-8 flex items-center gap-4">
-                        <span className="w-4 h-4 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.8)]"></span>
-                        NORTHBOUND TERMINAL
-                    </h2>
-                    <div className="flex justify-between gap-6 px-4">
-                        {bays
-                            .filter((b) => b.type === "Northbound")
-                            .map((bay) => (
-                                <PublicBayCard key={bay.id} bay={bay} />
-                            ))}
+                {/* Terminals Grid Container */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 w-full z-10 mb-8 lg:mb-12">
+                    {/* Northbound Column */}
+                    <div className="w-full px-2">
+                        <h2 className="text-slate-300 font-black text-xl lg:text-2xl mb-6 flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]"></span>
+                            NORTHBOUND TERMINAL
+                        </h2>
+                        <div className="flex flex-row justify-between gap-2 lg:gap-3 w-full">
+                            {bays
+                                .filter((b) => b.type === "Northbound")
+                                .map((bay) => (
+                                    <PublicBayCard key={bay.id} bay={bay} />
+                                ))}
+                        </div>
+                    </div>
+
+                    {/* Southbound Column */}
+                    <div className="w-full px-2">
+                        <h2 className="text-slate-300 font-black text-xl lg:text-2xl mb-6 flex items-center gap-3">
+                            <span className="w-3 h-3 rounded-full bg-teal-500 shadow-[0_0_15px_rgba(20,184,166,0.8)]"></span>
+                            SOUTHBOUND TERMINAL
+                        </h2>
+                        <div className="flex flex-row justify-between gap-2 lg:gap-3 w-full">
+                            {bays
+                                .filter((b) => b.type === "Southbound")
+                                .map((bay) => (
+                                    <PublicBayCard key={bay.id} bay={bay} />
+                                ))}
+                        </div>
                     </div>
                 </div>
 
-                {/* Road Divider */}
-                <div className="relative z-10 flex items-center gap-6 my-4 opacity-40">
+                {/* Horizontal Road Divider (Moved Up directly under bays) */}
+                <div className="flex items-center gap-6 opacity-40 z-10 px-8 w-full max-w-6xl mx-auto">
                     <div className="flex-1 border-t-4 border-dashed border-slate-600"></div>
                     <span className="text-slate-500 font-black text-xl tracking-[0.5em] uppercase">
-                        Road Lane
+                        ROAD LANE
                     </span>
                     <div className="flex-1 border-t-4 border-dashed border-slate-600"></div>
-                </div>
-
-                {/* Southbound Row */}
-                <div className="relative z-10 mt-8">
-                    <h2 className="text-slate-300 font-black text-3xl mb-8 flex items-center gap-4">
-                        <span className="w-4 h-4 rounded-full bg-teal-500 shadow-[0_0_15px_rgba(20,184,166,0.8)]"></span>
-                        SOUTHBOUND TERMINAL
-                    </h2>
-                    <div className="flex justify-between gap-6 px-4">
-                        {bays
-                            .filter((b) => b.type === "Southbound")
-                            .map((bay) => (
-                                <PublicBayCard key={bay.id} bay={bay} />
-                            ))}
-                    </div>
                 </div>
             </div>
 

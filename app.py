@@ -89,25 +89,6 @@ def send_email_async(to_email, otp):
     except Exception as e:
         print(f"❌ Failed to send email: {e}")
 
-def send_sms_async(phone_number, otp):
-    # To send REAL SMS, you need a Twilio account (it's free to try).
-    # 1. pip install twilio
-    # 2. Add your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN
-    try:
-        from twilio.rest import Client
-        account_sid = 'ACcab8d4772e9d0df0a0b93ce109754d95'
-        auth_token = '814d5d8e4596633e6ee5a53e935044a3'
-        client = Client(account_sid, auth_token)
-        
-        message = client.messages.create(
-            body=f"TerminalSight Admin OTP: {otp}",
-            from_='+13093267912', # <-- IMPORTANT: Put your assigned Twilio phone number here!
-            to=phone_number
-        )
-        print(f"📱 Successfully sent actual SMS to {phone_number}")
-    except Exception as e:
-        print(f"❌ Failed to send SMS: {e}")
-
 # --- GLOBAL STATE VARIABLES ---
 live_status = {"Bay_1": "AVAILABLE", "Bay_2": "AVAILABLE", "Bay_3": "AVAILABLE", "Bay_4": "AVAILABLE", "Bay_5": "AVAILABLE", "Bay_6": "AVAILABLE", "Bay_7": "AVAILABLE", "Bay_8": "AVAILABLE", "Bay_9": "AVAILABLE", "Bay_10": "AVAILABLE"}
 timers = {
@@ -313,21 +294,21 @@ def request_otp():
         return jsonify({'success': True}), 200
         
     data = request.json
-    contact = data.get("contact") # Can be email or phone
+    contact = data.get("contact") # Now explicitly expects email
     
     if not contact:
-        return jsonify({"success": False, "message": "Contact detail required."}), 400
+        return jsonify({"success": False, "message": "Email address required."}), 400
         
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    cursor.execute("SELECT username, phone_number, email FROM admin_users WHERE phone_number = ? OR email = ?", (contact, contact))
+    cursor.execute("SELECT username, email FROM admin_users WHERE email = ?", (contact,))
     user = cursor.fetchone()
     conn.close()
     
     if not user:
-        return jsonify({"success": False, "message": "No administrator found with that contact info."}), 404
+        return jsonify({"success": False, "message": "No administrator found with that email address."}), 404
         
-    username, phone, email = user
+    username, email = user
     
     # Generate 6-digit OTP
     otp = str(secrets.randbelow(900000) + 100000) 
@@ -339,14 +320,11 @@ def request_otp():
     }
     
     # Actually send the OTP in a background thread so the API doesn't freeze waiting for the network
-    if "@" in contact:
-        threading.Thread(target=send_email_async, args=(contact, otp)).start()
-        # For security, you shouldn't return the real OTP to the frontend in production,
-        # but we'll leave it in the payload for now so you can still test it before hooking up the Gmail account.
-        return jsonify({"success": True, "message": f"OTP sent to email: {contact}", "username": username, "demo_otp": otp})
-    else:
-        threading.Thread(target=send_sms_async, args=(contact, otp)).start()
-        return jsonify({"success": True, "message": f"OTP sent to phone: {contact}", "username": username, "demo_otp": otp})
+    threading.Thread(target=send_email_async, args=(email, otp)).start()
+    
+    # For security, you shouldn't return the real OTP to the frontend in production,
+    # but we'll leave it in the payload for now so you can still test it before hooking up the Gmail account.
+    return jsonify({"success": True, "message": f"OTP sent to email: {email}", "username": username, "demo_otp": otp})
 
 @app.route('/api/reset_password', methods=['POST', 'OPTIONS'])
 def reset_password():

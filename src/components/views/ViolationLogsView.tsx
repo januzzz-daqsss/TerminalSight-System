@@ -202,7 +202,7 @@ export function ViolationLogsView() {
                     </div>
                     <button
                         onClick={handleExportCSV}
-                        className="flex items-center gap-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-indigo-100"
+                        className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-emerald-100"
                     >
                         <Download size={16} />
                         Export to CSV
@@ -221,13 +221,13 @@ export function ViolationLogsView() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search by Slot ID or Status..."
-                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+                            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-shadow"
                         />
                     </div>
                     <select
                         value={zoneFilter}
                         onChange={(e) => setZoneFilter(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                         <option>All Terminal Zones</option>
                         <option>Northbound</option>
@@ -236,7 +236,7 @@ export function ViolationLogsView() {
                     <select
                         value={vehicleFilter}
                         onChange={(e) => setVehicleFilter(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                         <option>All Vehicle Classes</option>
                         <option>Bus</option>
@@ -245,7 +245,7 @@ export function ViolationLogsView() {
                     <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="bg-slate-50 border border-slate-200 text-slate-700 font-medium text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     >
                         <option>All Statuses</option>
                         <option>Fine Issued / Logged</option>
@@ -272,7 +272,7 @@ export function ViolationLogsView() {
                         {currentLogs.map((log, idx) => (
                             <tr
                                 key={log.id}
-                                className={`${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"} hover:bg-indigo-50/30 transition-colors`}
+                                className={`${idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"} hover:bg-emerald-50/30 transition-colors`}
                             >
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2 text-slate-600">
@@ -319,7 +319,7 @@ export function ViolationLogsView() {
                                                 ? "text-emerald-600"
                                                 : log.action.includes("Fine")
                                                     ? "text-amber-600"
-                                                    : "text-indigo-600"
+                                                    : "text-emerald-600"
                                             }`}
                                     >
                                         {log.action.includes("Resolved") && (

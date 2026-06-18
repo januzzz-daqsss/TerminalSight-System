@@ -91,7 +91,7 @@ export function CameraZonesView() {
                     </div>
                     <button
                         onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
                     >
                         <Plus size={16} />
                         Add New IP Camera
@@ -167,7 +167,7 @@ export function CameraZonesView() {
                             </div>
                             <button
                                 onClick={() => handleOpenModal(cam)}
-                                className="text-indigo-400 hover:text-indigo-300 text-xs font-semibold px-2 py-1 rounded hover:bg-indigo-400/10 transition-colors"
+                                className="text-emerald-400 hover:text-emerald-300 text-xs font-semibold px-2 py-1 rounded hover:bg-emerald-400/10 transition-colors"
                             >
                                 Configure
                             </button>
@@ -205,7 +205,7 @@ export function CameraZonesView() {
                                         setFormData({ ...formData, name: e.target.value })
                                     }
                                     placeholder="e.g. CAM 7"
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
                                 />
                             </div>
                             <div>
@@ -219,7 +219,7 @@ export function CameraZonesView() {
                                         setFormData({ ...formData, assignedBays: e.target.value })
                                     }
                                     placeholder="e.g. Northbound Bays 1-3"
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
                                 />
                             </div>
                             <div>
@@ -234,7 +234,7 @@ export function CameraZonesView() {
                                         setFormData({ ...formData, rtspUrl: e.target.value })
                                     }
                                     placeholder="rtsp://192.168.1.10:554/stream"
-                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"
+                                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-shadow"
                                 />
                             </div>
 
@@ -248,7 +248,7 @@ export function CameraZonesView() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors shadow-sm"
+                                    className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm"
                                 >
                                     Save Configuration
                                 </button>
