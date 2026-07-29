@@ -181,7 +181,7 @@ export default function App() {
     }
 
     return (
-        <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+        <div className="flex h-screen print:h-auto bg-slate-50 overflow-hidden print:overflow-visible font-sans">
             <Sidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -197,7 +197,7 @@ export default function App() {
                 />
 
                 {/* Scrollable content */}
-                <main className="flex-1 overflow-y-auto p-5 space-y-5">
+                <main className="flex-1 overflow-y-auto print:overflow-visible print:p-0 p-5 space-y-5">
                     {activeTab === "dashboard" && <DashboardView bays={bays} />}
                     {activeTab === "analytics" && <AnalyticsView />}
                     {activeTab === "camera" && <CameraZonesView />}

@@ -45,6 +45,11 @@ export function SettingsView() {
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
 
+    // OTP Modal State
+    const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+    const [otpCode, setOtpCode] = useState("");
+    const [demoOtp, setDemoOtp] = useState("");
+
     const evaluateStrength = (pw: string) => {
         if (!pw) return { label: "", color: "bg-slate-200", score: 0 };
         const hasLower = /[a-z]/.test(pw);
@@ -62,7 +67,7 @@ export function SettingsView() {
 
     const strength = evaluateStrength(newPassword);
 
-    const handleAccountUpdate = async () => {
+    const handleAccountUpdate = () => {
         if (!oldPassword) {
             setAccountMsg("Current password is required.");
             setAccountStatus("error");
@@ -75,6 +80,22 @@ export function SettingsView() {
             return;
         }
 
+        // Generate a mock OTP for the defense
+        const generated = Math.floor(100000 + Math.random() * 900000).toString();
+        setDemoOtp(generated);
+        setOtpCode("");
+        setIsOtpModalOpen(true);
+    };
+
+    const confirmAccountUpdate = async () => {
+        if (otpCode !== demoOtp) {
+            setAccountMsg("Invalid OTP code.");
+            setAccountStatus("error");
+            setIsOtpModalOpen(false);
+            return;
+        }
+
+        setIsOtpModalOpen(false);
         setAccountStatus("saving");
         try {
             const res = await fetch("http://127.0.0.1:5000/api/update_account", {
@@ -514,6 +535,48 @@ export function SettingsView() {
                     {saveStatus === "saved" ? "Saved!" : "Save Configurations"}
                 </button>
             </div>
+
+            {/* OTP Verification Modal */}
+            {isOtpModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-slate-200">
+                        <div className="flex items-center justify-center w-12 h-12 bg-emerald-100 rounded-full mb-4 mx-auto">
+                            <Lock className="text-emerald-600" size={24} />
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-800 text-center mb-2">Security Verification</h3>
+                        <p className="text-sm text-slate-500 text-center mb-6">
+                            To update your credentials, please enter the 6-digit OTP sent to your registered email.
+                            <br/><br/>
+                            <span className="bg-slate-100 text-slate-600 font-mono px-2 py-1 rounded text-xs border border-slate-200 shadow-sm">Demo Code: {demoOtp}</span>
+                        </p>
+                        
+                        <input
+                            type="text"
+                            maxLength={6}
+                            value={otpCode}
+                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                            placeholder="• • • • • •"
+                            className="w-full text-center tracking-[1em] font-mono font-bold text-2xl px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-6"
+                        />
+                        
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setIsOtpModalOpen(false)}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmAccountUpdate}
+                                disabled={otpCode.length !== 6}
+                                className="flex-1 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Verify & Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

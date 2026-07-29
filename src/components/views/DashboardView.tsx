@@ -143,49 +143,47 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
     const available = bays.filter((b) => b.status === "Available").length;
     const occupied = bays.filter((b) => b.status === "Occupied").length;
     const overstaying = bays.filter((b) => b.status === "Overstaying").length;
-    const utilization = bays.length > 0 ? Math.round(((occupied + overstaying) / bays.length) * 100) : 0;
 
     const stats = [
         {
-            label: "Total Bays",
-            value: bays.length,
-            color: "text-slate-700",
-            bg: "bg-slate-100",
-        },
-        {
-            label: "Available",
+            label: "Available Slots",
             value: available,
-            color: "text-emerald-700",
-            bg: "bg-emerald-100",
+            color: "text-emerald-600",
+            bg: "bg-white",
+            border: "border-emerald-200",
+            icon: <CheckCircle2 size={24} className="text-emerald-400" />
         },
         {
-            label: "Occupied",
+            label: "Occupied Slots",
             value: occupied,
-            color: "text-amber-700",
-            bg: "bg-amber-100",
+            color: "text-amber-600",
+            bg: "bg-white",
+            border: "border-amber-200",
+            icon: <Car size={24} className="text-amber-400" />
         },
         {
-            label: "Overstaying",
+            label: "Active Violations",
             value: overstaying,
-            color: "text-red-700",
-            bg: "bg-red-100",
-        },
-        {
-            label: "Utilization",
-            value: `${utilization}%`,
-            color: "text-emerald-700",
-            bg: "bg-emerald-100",
+            color: "text-red-600",
+            bg: "bg-white",
+            border: "border-red-200",
+            icon: <ShieldAlert size={24} className="text-red-400" />
         },
     ];
 
     return (
-        <div className="grid grid-cols-5 gap-3">
-            {stats.map(({ label, value, color, bg }) => (
-                <div key={label} className={`${bg} rounded-xl px-4 py-3 flex flex-col`}>
-                    <span className={`text-xl font-extrabold ${color}`}>{value}</span>
-                    <span className="text-slate-500 text-[11px] font-medium mt-0.5">
-                        {label}
-                    </span>
+        <div className="grid grid-cols-3 gap-5">
+            {stats.map(({ label, value, color, bg, border, icon }) => (
+                <div key={label} className={`${bg} rounded-2xl p-5 flex items-center justify-between border ${border} shadow-sm transition-all hover:shadow-md`}>
+                    <div className="flex flex-col">
+                        <span className="text-slate-500 text-sm font-semibold mb-1">
+                            {label}
+                        </span>
+                        <span className={`text-3xl font-extrabold ${color}`}>{value}</span>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                        {icon}
+                    </div>
                 </div>
             ))}
         </div>
@@ -201,34 +199,34 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
             {/* Main 2/3 + 1/3 split */}
             <div className="flex gap-5 min-h-0">
                 {/* 2/3 — Bay Grid */}
-                <div className="flex-[2] min-w-0 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-slate-800 font-bold text-sm">
-                                2D Spatial Terminal Map
-                            </h2>
-                            <p className="text-slate-400 text-[11px]">
-                                10 docking bays · Real-time occupancy
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-4 text-[11px] font-medium text-slate-500">
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                                Available
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-                                Occupied
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-                                Overstaying
-                            </span>
-                        </div>
-                    </div>
-
+                <div className="flex-[2] min-w-0">
                     {/* ── Spatial Map ── */}
-                    <div className="bg-slate-800 rounded-2xl p-5 space-y-5">
+                    <div className="bg-slate-800 rounded-2xl p-6 shadow-xl border border-slate-700 space-y-6">
+                        {/* Integrated Header */}
+                        <div className="flex items-center justify-between border-b border-slate-700 pb-4">
+                            <div>
+                                <h2 className="text-white font-bold text-lg tracking-wide flex items-center gap-2">
+                                    2D Spatial Terminal Map
+                                </h2>
+                                <p className="text-slate-400 text-xs font-medium mt-1">
+                                    Real-time occupancy and automated detection zones
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-5 text-xs font-bold text-slate-300 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700">
+                                <span className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                                    Available
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
+                                    Occupied
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                                    Overstaying
+                                </span>
+                            </div>
+                        </div>
                         {/* Northbound Terminal — Bays 1–5 */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
