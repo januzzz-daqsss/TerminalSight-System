@@ -11,6 +11,9 @@ import {
     FileText,
     Search,
     ChevronLeft,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown,
 } from "lucide-react";
 
 // ─── Violation Logs Component ──────────────────────────────────────────────────
@@ -128,8 +131,19 @@ export function ViolationLogsView() {
     const [vehicleFilter, setVehicleFilter] = useState("All Vehicle Classes");
     const [statusFilter, setStatusFilter] = useState("All Statuses");
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortColumn, setSortColumn] = useState<keyof typeof MOCK_VIOLATIONS_HISTORY[0] | null>(null);
+    const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
     const itemsPerPage = 10;
+
+    const handleSort = (column: keyof typeof MOCK_VIOLATIONS_HISTORY[0]) => {
+        if (sortColumn === column) {
+            setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        } else {
+            setSortColumn(column);
+            setSortDirection("asc");
+        }
+    };
 
     const filteredLogs = MOCK_VIOLATIONS_HISTORY.filter((log) => {
         const matchesSearch =
@@ -150,8 +164,27 @@ export function ViolationLogsView() {
         setCurrentPage(1);
     }, [searchQuery, zoneFilter, vehicleFilter, statusFilter]);
 
-    const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
-    const currentLogs = filteredLogs.slice(
+    const sortedLogs = [...filteredLogs].sort((a, b) => {
+        if (!sortColumn) return 0;
+        
+        let valA: string | number = a[sortColumn];
+        let valB: string | number = b[sortColumn];
+
+        if (sortColumn === "timestamp") {
+            valA = new Date(valA).getTime();
+            valB = new Date(valB).getTime();
+        } else if (sortColumn === "limit") {
+            valA = parseInt(valA as string);
+            valB = parseInt(valB as string);
+        }
+
+        if (valA < valB) return sortDirection === "asc" ? -1 : 1;
+        if (valA > valB) return sortDirection === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    const totalPages = Math.ceil(sortedLogs.length / itemsPerPage);
+    const currentLogs = sortedLogs.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage,
     );
@@ -260,12 +293,29 @@ export function ViolationLogsView() {
                 <table className="w-full text-left border-collapse min-w-[800px]">
                     <thead className="sticky top-0 bg-slate-100 shadow-sm z-10">
                         <tr className="border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
-                            <th className="px-6 py-4">Timestamp</th>
-                            <th className="px-6 py-4">Slot ID</th>
-                            <th className="px-6 py-4">Vehicle Type</th>
-                            <th className="px-6 py-4">Time Limit</th>
-                            <th className="px-6 py-4">Overstay Duration</th>
-                            <th className="px-6 py-4">Action Taken</th>
+                            {[
+                                { key: "timestamp", label: "Timestamp" },
+                                { key: "slot", label: "Slot ID" },
+                                { key: "vehicle", label: "Vehicle Type" },
+                                { key: "limit", label: "Time Limit" },
+                                { key: "overstay", label: "Overstay Duration" },
+                                { key: "action", label: "Action Taken" },
+                            ].map((col) => (
+                                <th 
+                                    key={col.key}
+                                    onClick={() => handleSort(col.key as keyof typeof MOCK_VIOLATIONS_HISTORY[0])}
+                                    className="px-6 py-4 cursor-pointer hover:bg-slate-200 hover:text-slate-800 transition-colors group select-none"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        {col.label}
+                                        {sortColumn === col.key ? (
+                                            sortDirection === "asc" ? <ArrowUp size={14} className="text-emerald-600" /> : <ArrowDown size={14} className="text-emerald-600" />
+                                        ) : (
+                                            <ArrowUpDown size={14} className="opacity-0 group-hover:opacity-50 transition-opacity" />
+                                        )}
+                                    </div>
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-sm">

@@ -215,7 +215,7 @@ export function AnalyticsView() {
                         Terminal performance and historical data
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 print:hidden">
                     <div className="relative">
                         <select
                             value={dateRange}
@@ -236,7 +236,7 @@ export function AnalyticsView() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-3 gap-5">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print-break-avoid">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print:break-inside-avoid">
                     <div className="flex items-center gap-2 text-emerald-600 mb-1">
                         <Clock size={18} />
                         <span className="text-sm font-semibold text-slate-600">
@@ -263,7 +263,7 @@ export function AnalyticsView() {
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print-break-avoid">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print:break-inside-avoid">
                     <div className="flex items-center gap-2 text-emerald-600 mb-1">
                         <Activity size={18} />
                         <span className="text-sm font-semibold text-slate-600">
@@ -290,7 +290,7 @@ export function AnalyticsView() {
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print-break-avoid">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2 print:break-inside-avoid">
                     <div className="flex items-center gap-2 text-red-600 mb-1">
                         <ShieldAlert size={18} />
                         <span className="text-sm font-semibold text-slate-600">
@@ -321,12 +321,12 @@ export function AnalyticsView() {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-2 gap-5">
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print-break-avoid">
+            <div className="grid grid-cols-2 gap-5 print:flex print:flex-col print:gap-8">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print:break-inside-avoid overflow-hidden">
                     <h3 className="text-sm font-bold text-slate-800 mb-4">
                         Peak Congestion Hours
                     </h3>
-                    <div className="h-64">
+                    <div className="relative w-full h-64 print:h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
                                 data={currentData.peak}
@@ -368,7 +368,7 @@ export function AnalyticsView() {
                     </div>
                 </div>
 
-                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print-break-avoid">
+                <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print:break-inside-avoid overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold text-slate-800">
                             Avg Loading Duration vs Limit
@@ -377,7 +377,7 @@ export function AnalyticsView() {
                             15m Limit
                         </span>
                     </div>
-                    <div className="h-64">
+                    <div className="relative w-full h-64 print:h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart
                                 data={currentData.duration}
@@ -447,12 +447,12 @@ export function AnalyticsView() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col print-break-avoid">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col print:break-inside-avoid">
                 <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
                     <h3 className="text-sm font-bold text-slate-800">
                         Recent Violation Export Logs
                     </h3>
-                    <div className="relative print-hide">
+                    <div className="relative print:hidden">
                         <button
                             onClick={() => setShowExportMenu(!showExportMenu)}
                             className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
@@ -484,8 +484,8 @@ export function AnalyticsView() {
                         )}
                     </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                <div className="overflow-x-auto print:overflow-visible print:h-auto print:max-h-none">
+                    <table className="w-full text-left border-collapse print:w-full">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
                                 <th className="px-5 py-3">Violation ID</th>
