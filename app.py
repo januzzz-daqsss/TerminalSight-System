@@ -2,6 +2,8 @@
 import cv2
 import time
 import threading
+import csv
+import io
 from flask import Flask, jsonify, Response, request
 from flask_cors import CORS
 from detector import analyze_frame # IMPORTING YOUR AI BRAIN
@@ -43,6 +45,17 @@ def init_db():
             email TEXT
         )
     ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Occupancy_Log (
+            log_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            slot_id TEXT NOT NULL,
+            vehicle_type_class TEXT NOT NULL,
+            arrival_timestamp TEXT NOT NULL,
+            departure_timestamp TEXT,
+            calculated_duration_minutes REAL
+        )
+    ''')
     
     # Check if we need to insert the default admin
     cursor.execute("SELECT COUNT(*) FROM admin_users")
@@ -69,7 +82,6 @@ def init_db():
 init_db()
 
 # --- FUNCTIONAL OTP SENDERS ---
-# For Email: Replace with your actual Gmail account and App Password
 SMTP_SENDER_EMAIL = "janustheq@gmail.com"
 SMTP_APP_PASSWORD = "riyt tskb wazx ckbu" # Generate this from Google Account Settings -> Security -> App Passwords
 
@@ -180,6 +192,43 @@ def video_feed_nb():
 @app.route('/api/status')
 def get_status():
     return jsonify(live_status)
+
+@app.route('/api/export/csv')
+def export_occupancy_csv():
+    """Export vehicle turnaround and occupancy history as a CSV download."""
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT
+            log_id,
+            slot_id,
+            vehicle_type_class,
+            arrival_timestamp,
+            departure_timestamp,
+            calculated_duration_minutes
+        FROM Occupancy_Log
+        ORDER BY arrival_timestamp DESC, log_id DESC
+    ''')
+    logs = cursor.fetchall()
+    conn.close()
+
+    csv_buffer = io.StringIO(newline="")
+    writer = csv.writer(csv_buffer)
+    writer.writerow([
+        "log_id",
+        "slot_id",
+        "vehicle_type_class",
+        "arrival_timestamp",
+        "departure_timestamp",
+        "calculated_duration_minutes",
+    ])
+    writer.writerows(logs)
+
+    response = Response(csv_buffer.getvalue(), mimetype="text/csv")
+    response.headers["Content-Disposition"] = (
+        "attachment; filename=terminalsight_occupancy_logs.csv"
+    )
+    return response
 
 # Optional: Consolidated timer endpoint
 @app.route('/api/timers')

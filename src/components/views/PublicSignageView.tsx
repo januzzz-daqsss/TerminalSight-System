@@ -3,7 +3,7 @@ import { formatDate, formatClock } from "../../utils/helpers";
 import { Bus } from "lucide-react";
 import { PublicBayCard } from "../ui/PublicBayCard";
 
-// ─── Public Signage Component ──────────────────────────────────────────────────
+// Displays public-facing slot status on external terminal monitors
 // Dedicated full-screen view for the external terminal display monitors.
 
 export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
