@@ -14,7 +14,6 @@ import {
     Loader2
 } from "lucide-react";
 
-// ─── Settings Component ───────────────────────────────────────────────────────
 // Manages system configurations including timers, audio PA, and cloud sync.
 
 const defaultSettings = {

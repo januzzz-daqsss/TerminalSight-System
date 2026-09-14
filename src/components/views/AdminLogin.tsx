@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { User, Lock, Loader2, MonitorSmartphone, Eye, EyeOff } from "lucide-react";
 
-// ─── Admin Login Component ────────────────────────────────────────────────────
+// Secure entry point for administrators
 // Secure entry point for the dashboard connected to the SQLite backend.
 
 export function AdminLogin({ onLogin }: { onLogin: () => void }) {

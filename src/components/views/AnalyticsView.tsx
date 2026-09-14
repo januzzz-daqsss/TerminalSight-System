@@ -22,7 +22,7 @@ import {
     Legend,
 } from "recharts";
 
-// ─── Analytics Component ──────────────────────────────────────────────────────
+// Historical data and trends visualization
 // Visualizes terminal performance metrics using Recharts.
 
 const MOCK_PEAK_DATA = [

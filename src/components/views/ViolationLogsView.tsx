@@ -16,7 +16,7 @@ import {
     ArrowDown,
 } from "lucide-react";
 
-// ─── Violation Logs Component ──────────────────────────────────────────────────
+// Component for viewing and managing overstay violations
 
 const BASE_MOCK_VIOLATIONS = [
     {

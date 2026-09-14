@@ -1,10 +1,10 @@
-import { Bus, Car, ShieldAlert, CheckCircle2, Activity } from "lucide-react";
+import { Bus, Car, ShieldAlert, CheckCircle2, Activity, Download } from "lucide-react";
 import { Bay } from "../../types";
 import { DETECTIONS } from "../../mockData";
 import { formatTimer } from "../../utils/helpers";
 import { BayCard } from "../ui/BayCard";
 
-// ─── Detection Feed ───────────────────────────────────────────────────────────
+// Live detection event feed
 
 export function DetectionFeed() {
     return (
@@ -73,7 +73,7 @@ export function DetectionFeed() {
     );
 }
 
-// ─── Active Violations ────────────────────────────────────────────────────────
+// Active overstay alerts
 
 export function ViolationsPanel({ bays }: { bays: Bay[] }) {
     const violations = bays.filter((b) => b.status === "Overstaying");
@@ -137,7 +137,7 @@ export function ViolationsPanel({ bays }: { bays: Bay[] }) {
     );
 }
 
-// ─── Stats Bar ───────────────────────────────────────────────────────────────
+// Top KPI statistics bar
 
 export function StatsBar({ bays }: { bays: Bay[] }) {
     const available = bays.filter((b) => b.status === "Available").length;
@@ -191,6 +191,29 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
 }
 
 export function DashboardView({ bays }: { bays: Bay[] }) {
+    const handleExportCSV = async () => {
+        try {
+            const response = await fetch("http://127.0.0.1:5000/api/export/csv");
+
+            if (!response.ok) {
+                throw new Error("Unable to export occupancy logs.");
+            }
+
+            const csvBlob = await response.blob();
+            const downloadUrl = URL.createObjectURL(csvBlob);
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = "terminalsight_occupancy_logs.csv";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+        } catch (error) {
+            console.error("CSV export failed:", error);
+            window.alert("Could not export occupancy logs. Please try again.");
+        }
+    };
+
     return (
         <div className="flex flex-col gap-5">
             {/* Stats bar */}
@@ -212,7 +235,16 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
                                     Real-time occupancy and automated detection zones
                                 </p>
                             </div>
-                            <div className="flex items-center gap-5 text-xs font-bold text-slate-300 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleExportCSV}
+                                    className="flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-300 transition-colors hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                >
+                                    <Download size={15} />
+                                    Export to CSV
+                                </button>
+                                <div className="flex items-center gap-5 text-xs font-bold text-slate-300 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700">
                                 <span className="flex items-center gap-2">
                                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
                                     Available
@@ -225,6 +257,7 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
                                     <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                                     Overstaying
                                 </span>
+                                </div>
                             </div>
                         </div>
                         {/* Northbound Terminal — Bays 1–5 */}
