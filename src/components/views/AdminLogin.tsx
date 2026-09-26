@@ -44,7 +44,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
         setIsLoading(true);
 
         try {
-            const response = await fetch("http://127.0.0.1:5000/api/login", {
+            const response = await fetch("/api/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -55,7 +55,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Save user info if needed, then trigger login
+                sessionStorage.setItem("terminalsight-export-token", data.export_token);
                 localStorage.setItem("terminalsight-user", JSON.stringify(data.user));
                 onLogin();
             } else {

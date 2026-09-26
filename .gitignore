@@ -32,3 +32,6 @@ env/
 
 # Large Video Files (GitHub blocks files > 100MB)
 public/sample-videos/*.mp4
+
+# Local inference runtime settings
+Ultralytics/

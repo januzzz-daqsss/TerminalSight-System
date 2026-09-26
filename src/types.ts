@@ -5,9 +5,15 @@ export interface Bay {
   id: number;
   type: "Northbound" | "Southbound";
   status: BayState;
-  vehicleType?: VehicleClass;
+  vehicleType?: VehicleClass | null;
+  sessionId?: string | null;
+  route?: string | null;
+  routeDetails?: string[];
+  ocrState?: "Detecting" | "Recognized" | "Unknown" | null;
+  ocrConfidence?: number | null;
+  elapsedSeconds?: number;
   /** seconds remaining (positive = occupied, negative = overstaying) */
-  timeRemaining?: number;
+  timeRemaining?: number | null;
   audioPlayed?: boolean;
 }
 

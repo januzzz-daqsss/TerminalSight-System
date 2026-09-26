@@ -190,10 +190,12 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
     );
 }
 
-export function DashboardView({ bays }: { bays: Bay[] }) {
+export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: number }) {
     const handleExportCSV = async () => {
         try {
-            const response = await fetch("http://127.0.0.1:5000/api/export/csv");
+            const response = await fetch("/api/export/occupancy-csv", {
+                headers: { Authorization: `Bearer ${sessionStorage.getItem("terminalsight-export-token") || ""}` },
+            });
 
             if (!response.ok) {
                 throw new Error("Unable to export occupancy logs.");
@@ -203,9 +205,10 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
             const downloadUrl = URL.createObjectURL(csvBlob);
             const link = document.createElement("a");
             link.href = downloadUrl;
-            link.download = "terminalsight_occupancy_logs.csv";
+            link.download = "occupancy_logs.csv";
             document.body.appendChild(link);
             link.click();
+            window.dispatchEvent(new Event("terminalsight:csv-exported"));
             link.remove();
             URL.revokeObjectURL(downloadUrl);
         } catch (error) {
@@ -275,7 +278,7 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
                                 {bays
                                     .filter((b) => b.type === "Northbound")
                                     .map((bay) => (
-                                        <BayCard key={bay.id} bay={bay} />
+                                        <BayCard key={bay.id} bay={bay} highlighted={focusedBay === bay.id} />
                                     ))}
                             </div>
                         </div>
@@ -304,7 +307,7 @@ export function DashboardView({ bays }: { bays: Bay[] }) {
                                 {bays
                                     .filter((b) => b.type === "Southbound")
                                     .map((bay) => (
-                                        <BayCard key={bay.id} bay={bay} />
+                                        <BayCard key={bay.id} bay={bay} highlighted={focusedBay === bay.id} />
                                     ))}
                             </div>
                         </div>

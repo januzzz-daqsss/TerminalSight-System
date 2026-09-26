@@ -1,3 +1,4 @@
+import { passengerStatus, publicTimer, routeLabel } from "../../utils/publicDisplay";
 import { Bay } from "../../types";
 import { Bus, Car } from "lucide-react";
 
@@ -9,23 +10,28 @@ export function PublicBayCard({ bay }: { bay: Bay }) {
     // Determine colors based on state
     let cardClass = "";
     let textClass = "";
-    let statusText = "";
+    const statusText = passengerStatus(bay);
 
     if (isAvailable) {
         cardClass =
             "bg-emerald-500/10 border-emerald-500 shadow-[inset_0_0_40px_rgba(16,185,129,0.1),0_0_20px_rgba(16,185,129,0.2)]";
         textClass = "text-emerald-400";
-        statusText = "OPEN SLOT";
+
     } else if (isOccupied) {
         cardClass =
             "bg-amber-400/10 border-amber-400 shadow-[inset_0_0_40px_rgba(251,191,36,0.1),0_0_20px_rgba(251,191,36,0.2)]";
         textClass = "text-amber-400";
-        statusText = "OCCUPIED";
+
     } else if (isOverstaying) {
         cardClass =
             "bg-red-500/20 border-red-500 shadow-[inset_0_0_60px_rgba(239,68,68,0.2),0_0_30px_rgba(239,68,68,0.4)]";
         textClass = "text-red-500";
-        statusText = "OVERSTAYING";
+
+    }
+
+    if (statusText === "DEPARTING") {
+        cardClass = "bg-orange-500/20 border-orange-400 shadow-lg";
+        textClass = "text-orange-200";
     }
 
     return (
@@ -38,7 +44,7 @@ export function PublicBayCard({ bay }: { bay: Bay }) {
                     BAY {bay.id}
                 </h3>
 
-                {bay.vehicleType ? (
+                {!isAvailable && bay.vehicleType ? (
                     <div className="flex items-center gap-1.5 bg-slate-900/60 px-2 py-1 rounded-full border border-slate-700 whitespace-nowrap">
                         {bay.vehicleType === "Bus" ? (
                             <Bus size={14} className="text-emerald-400 flex-shrink-0" />
@@ -53,8 +59,11 @@ export function PublicBayCard({ bay }: { bay: Bay }) {
                     <div className="h-6"></div> // Spacer to keep layout balanced
                 )}
 
+                {!isAvailable && <div className="px-2 text-sm font-bold leading-tight text-white xl:text-xl">{routeLabel(bay)}</div>}
+                {!isAvailable && <div className="font-mono text-2xl font-black text-white xl:text-3xl">{publicTimer(bay)}</div>}
+
                 <div
-                    className={`font-black text-[10px] lg:text-xs tracking-widest ${textClass} drop-shadow-md whitespace-nowrap`}
+                    className={`font-black text-xs lg:text-sm tracking-wide ${textClass} drop-shadow-md whitespace-nowrap`}
                 >
                     {statusText}
                 </div>

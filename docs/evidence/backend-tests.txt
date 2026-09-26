@@ -1,0 +1,10 @@
+test_authentication_and_alias (test_occupancy_export.OccupancyExportTests.test_authentication_and_alias) ... ok
+test_database_failure_is_json (test_occupancy_export.OccupancyExportTests.test_database_failure_is_json) ... ok
+test_header_only_export (test_occupancy_export.OccupancyExportTests.test_header_only_export) ... ok
+test_join_nulls_order_unicode_and_csv_escaping (test_occupancy_export.OccupancyExportTests.test_join_nulls_order_unicode_and_csv_escaping) ... ok
+test_password_change_invalidates_token (test_occupancy_export.OccupancyExportTests.test_password_change_invalidates_token) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.405s
+
+OK

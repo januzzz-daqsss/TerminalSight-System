@@ -1,0 +1,25 @@
+﻿{
+  "routes": [
+    {"id": "panabo-tagum", "label": "Panabo - Tagum", "aliases": ["PANABO TAGUM", "TAGUM"]},
+    {"id": "panabo-davao", "label": "Panabo - Davao", "aliases": ["PANABO DAVAO", "DAVAO"],
+     "secondary_destinations": [
+       {"id": "ma-a", "label": "Ma-a", "aliases": ["MAA", "MA-A", "MA A"]}
+     ]}
+  ],
+  "sample_interval_seconds": 1.5,
+  "departure_confirm_seconds": 5,
+  "evidence_window_seconds": 30,
+  "unknown_after_seconds": 20,
+  "minimum_observations": 3,
+  "minimum_ocr_score": 0.65,
+  "minimum_route_score": 0.90,
+  "ambiguity_margin": 0.10,
+  "sign_regions": {
+    "Bus": [0.08, 0.04, 0.96, 0.58],
+    "UV Express": [0.16, 0.12, 0.92, 0.34]
+  },
+  "sign_preprocessing": {
+    "Bus": {"scale": 2, "vertical_stretch": 1},
+    "UV Express": {"scale": 3, "vertical_stretch": 2}
+  }
+}

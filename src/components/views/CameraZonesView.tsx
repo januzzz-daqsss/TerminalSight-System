@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import type { CameraHealth } from "../../notifications/model";
+import { useState } from "react";
 import {
     AlertTriangle,
     MapPin,
@@ -7,7 +8,6 @@ import {
     Signal,
     X,
     Maximize,
-    Activity,
 } from "lucide-react";
 
 export interface CameraFeed {
@@ -36,37 +36,22 @@ const INITIAL_CAMERAS: CameraFeed[] = [
 ];
 
 function CameraHUD({ camName }: { camName: string }) {
-    const [fps, setFps] = useState(24);
-    const [ping, setPing] = useState(12);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setFps(Math.floor(Math.random() * (30 - 22 + 1) + 22));
-            setPing(Math.floor(Math.random() * (25 - 12 + 1) + 12));
-        }, 2000);
-        return () => clearInterval(interval);
-    }, []);
-
     return (
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
             <div className="bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded border border-white/10 text-white text-xs font-bold font-mono tracking-wide shadow-lg">
                 {camName}
             </div>
-            <div className="flex items-center gap-3 bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded border border-white/10 text-emerald-400 text-[10px] font-bold font-mono shadow-lg w-max">
-                <span className="flex items-center gap-1.5">
-                    <Activity size={12} className="text-emerald-500" /> FPS: {fps}
-                </span>
-                <span className="text-slate-500">|</span>
-                <span className="flex items-center gap-1.5">
-                    <Signal size={12} className="text-emerald-500" /> {ping}ms
-                </span>
-            </div>
+
         </div>
     );
 }
 
-export function CameraZonesView() {
-    const [cameras, setCameras] = useState<CameraFeed[]>(INITIAL_CAMERAS);
+export function CameraZonesView({ health, localOnline, focusedCamera }: { health: CameraHealth[]; localOnline: boolean; focusedCamera?: number }) {
+    const [configuredCameras, setCameras] = useState<CameraFeed[]>(INITIAL_CAMERAS);
+    const cameras = configuredCameras.map(camera => ({ ...camera,
+        status: (localOnline && health.find(item => item.id === camera.id)?.state === 'Live' ? 'LIVE' : 'OFFLINE') as CameraFeed['status'],
+        healthLabel: localOnline ? health.find(item => item.id === camera.id)?.state || 'Not connected' : 'Backend unavailable',
+    }));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCamera, setEditingCamera] = useState<CameraFeed | null>(null);
 
@@ -141,10 +126,10 @@ export function CameraZonesView() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200">
+                    <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${localOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                         <Signal size={16} className="animate-pulse" />
                         <span className="text-sm font-bold">
-                            Local Network Status: Connected
+                            {localOnline ? "Local Backend: Online" : "Local Backend: Unavailable"}
                         </span>
                     </div>
                     <button
@@ -161,6 +146,9 @@ export function CameraZonesView() {
                 {cameras.map((cam) => (
                     <div
                         key={cam.id}
+                        id={`camera-${cam.id}`}
+                        tabIndex={-1}
+                        style={focusedCamera === cam.id ? { outline: "4px solid #0ea5e9", outlineOffset: 4 } : undefined}
                         className="bg-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col border border-slate-700 transition-all duration-300 hover:shadow-[0_0_25px_rgba(16,185,129,0.25)] hover:border-emerald-500/50 hover:-translate-y-1"
                     >
                         {/* Video Area (Updated with AI Stream Integration) */}
@@ -168,9 +156,9 @@ export function CameraZonesView() {
                             {cam.status === "LIVE" ? (
                                 <>
                                     {/* --- THE FLASK AI INTEGRATION --- */}
-                                    {cam.name === "Southbound Cam 1" || cam.name === "Northbound Cam 1" ? (
+                                    {cam.id === 2 || cam.id === 1 ? (
                                         <img
-                                            src={cam.name === "Southbound Cam 1" ? "http://127.0.0.1:5000/video_feed/southbound_cam1" : "http://127.0.0.1:5000/video_feed/northbound_cam1"}
+                                            src={cam.id === 2 ? "/video_feed/southbound_cam1" : "/video_feed/northbound_cam1"}
                                             alt="Live AI Stream"
                                             className="absolute inset-0 w-full h-full object-cover"
                                         />
@@ -190,7 +178,7 @@ export function CameraZonesView() {
                                         <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded border border-white/10 shadow-lg">
                                             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                                             <span className="text-white text-[10px] font-bold tracking-widest uppercase">
-                                                Live
+                                                {cam.id === 1 || cam.id === 2 ? "Sample video / AI" : "Live"}
                                             </span>
                                         </div>
                                         <button 
@@ -228,12 +216,25 @@ export function CameraZonesView() {
                                         </div>
                                     </div>
                                 </>
+                            ) : localOnline && cam.healthLabel === "Disabled" && (cam.id === 1 || cam.id === 2) ? (
+                                <>
+                                    <video
+                                        autoPlay loop muted playsInline controls
+                                        src={cam.id === 1 ? "/sample-videos/sample-VID_20260604_131402.mp4" : "/sample-videos/sample-VID_20260604_133427.mp4"}
+                                        className="absolute inset-0 h-full w-full object-contain"
+                                        aria-label={`${cam.name} sample video without AI detection`}
+                                    />
+                                    <div className="pointer-events-none absolute left-3 top-3 rounded bg-slate-900/80 px-3 py-2 text-xs font-semibold text-white">
+                                        {cam.name} - Sample playback / Detection off
+                                    </div>
+                                </>
                             ) : (
                                 <div className="flex flex-col items-center gap-2 text-slate-600">
                                     <AlertTriangle size={32} />
                                     <span className="text-xs font-bold uppercase tracking-widest">
-                                        Feed Offline
+                                        {cam.name}: {cam.healthLabel}
                                     </span>
+                                    <button onClick={() => handleOpenModal(cam)} className="mt-2 rounded border border-slate-500 px-3 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700">Configure</button>
                                 </div>
                             )}
                         </div>

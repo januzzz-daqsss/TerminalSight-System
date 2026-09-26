@@ -8,6 +8,7 @@ import {
     Activity,
     Download,
     Calendar,
+    Loader2,
 } from "lucide-react";
 import {
     BarChart,
@@ -174,6 +175,49 @@ export function AnalyticsView() {
     >("Today");
     const [showExportMenu, setShowExportMenu] = useState(false);
     const currentData = MOCK_DATA_SETS[dateRange];
+    const [isExporting, setIsExporting] = useState(false);
+    const [exportError, setExportError] = useState("");
+    const [exportStatus, setExportStatus] = useState("");
+
+    const handleExportOccupancy = async () => {
+        if (isExporting) return;
+        setIsExporting(true);
+        setExportError("");
+        setExportStatus("");
+        try {
+            const response = await fetch("/api/export/occupancy-csv", {
+                headers: { Authorization: `Bearer ${sessionStorage.getItem("terminalsight-export-token") || ""}` },
+                signal: AbortSignal.timeout(60000),
+            });
+            if (!response.ok) {
+                throw new Error(response.status === 401
+                    ? "Your export session expired. Sign out and sign in again."
+                    : "Unable to export occupancy logs. Please try again.");
+            }
+            if (!response.headers.get("Content-Type")?.includes("text/csv")) {
+                throw new Error("The server did not return a CSV file. Please try again.");
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            try {
+                link.href = url;
+                link.download = "occupancy_logs.csv";
+                document.body.appendChild(link);
+                link.click();
+                setExportStatus("Download started: occupancy_logs.csv");
+                window.dispatchEvent(new Event("terminalsight:csv-exported"));
+            } finally {
+                link.remove();
+                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+        } catch (error) {
+            setExportError(error instanceof Error ? error.message : "Unable to export occupancy logs.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
 
     const handleExportCSV = () => {
         const headers = [
@@ -232,6 +276,21 @@ export function AnalyticsView() {
                         />
                     </div>
                 </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 print:hidden">
+                <button
+                    onClick={handleExportOccupancy}
+                    disabled={isExporting}
+                    aria-busy={isExporting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
+                >
+                    {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                    {isExporting ? "Exporting?" : "Export Turnaround Logs (CSV)"}
+                </button>
+                <span className="text-xs text-slate-500">All recorded occupancy history, regardless of chart date range.</span>
+                {exportError && <p role="alert" className="w-full text-sm text-red-600">{exportError}</p>}
+                <p role="status" className="w-full text-sm text-emerald-700">{exportStatus}</p>
             </div>
 
             {/* KPI Cards */}
