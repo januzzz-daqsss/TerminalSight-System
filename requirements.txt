@@ -4,3 +4,7 @@ opencv-python
 ultralytics
 shapely
 numpy
+
+# Local OCR; this version bundles the ONNX models used by ocr_worker.py
+rapidocr==3.9.2
+onnxruntime==1.30.0

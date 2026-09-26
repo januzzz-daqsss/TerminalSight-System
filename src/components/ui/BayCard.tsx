@@ -1,3 +1,4 @@
+import { routeLabel } from "../../utils/publicDisplay";
 import {
     CheckCircle2,
     Timer,
@@ -11,7 +12,7 @@ import {
 import { Bay } from "../../types";
 import { formatTimer } from "../../utils/helpers";
 
-export function BayCard({ bay }: { bay: Bay }) {
+export function BayCard({ bay, highlighted = false }: { bay: Bay; highlighted?: boolean }) {
     const isAvailable = bay.status === "Available";
     const isOccupied = bay.status === "Occupied";
     const isOverstaying = bay.status === "Overstaying";
@@ -26,7 +27,7 @@ export function BayCard({ bay }: { bay: Bay }) {
             : `${cardBase} bg-red-50 border-red-500 shadow-lg`;
 
     return (
-        <div className={cardStyle}>
+        <div id={`bay-${bay.id}`} tabIndex={-1} className={`${cardStyle} ${highlighted ? "ring-4 ring-sky-500 ring-offset-4" : ""}`}>
             {/* Overstay pulse ring */}
             {isOverstaying && (
                 <span className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-30 pointer-events-none" />
@@ -105,7 +106,7 @@ export function BayCard({ bay }: { bay: Bay }) {
                         <span
                             className={`text-[11px] ${isOccupied ? "text-amber-700" : "text-red-700"}`}
                         >
-                            Local Terminal
+                            {routeLabel(bay)}
                         </span>
                     </div>
 

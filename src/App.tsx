@@ -1,4 +1,8 @@
-import { useState, useEffect } from "react";
+import { PublicView } from "./components/views/PublicView";
+import { useNotifications } from "./notifications/useNotifications";
+import { NotificationBanner, SystemDetails } from "./notifications/NotificationUI";
+import type { Notice, Target } from "./notifications/model";
+import { useState, useEffect, useCallback } from "react";
 import { Bay } from "./types";
 import { initialBays } from "./mockData";
 import { formatClock, formatDate } from "./utils/helpers";
@@ -15,133 +19,68 @@ import { DashboardView } from "./components/views/DashboardView";
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [now, setNow] = useState(new Date());
-    const [bays, setBays] = useState<Bay[]>(() => {
-        const saved = localStorage.getItem("terminalsight-state");
-        if (saved) {
-            let parsed = JSON.parse(saved);
-            // Hotfix: Clean up previously cached state to enforce structural rules
-            parsed = parsed.map((bay: any) => {
-                if (bay.status !== "Available") {
-                    const isUVExpress = bay.id === 1 || bay.id === 10;
-                    if (isUVExpress && bay.vehicleType !== "UV Express") {
-                        return { ...bay, vehicleType: "UV Express" };
-                    }
-                    if (!isUVExpress && bay.vehicleType === "UV Express") {
-                        return { ...bay, vehicleType: "Bus" };
-                    }
-                }
-                return bay;
-            });
-            return parsed;
-        }
-        return initialBays;
-    });
+    const isPublic = ['/signage', '/public-view'].includes(window.location.pathname);
+    const [bays, setBays] = useState<Bay[]>(initialBays);
     const [activeTab, setActiveTab] = useState("dashboard");
-
-    // Consolidated master clock and timer update to prevent multiple re-renders
-    useEffect(() => {
-        // If we are in public signage view, just listen to the broadcast channel
-        if (window.location.pathname === "/signage") {
-            const channel = new BroadcastChannel("terminalsight-sync");
-            const id = setInterval(() => setNow(new Date()), 1000);
-
-            channel.onmessage = (event) => {
-                setBays(JSON.parse(event.data));
-            };
-
-            return () => {
-                clearInterval(id);
-                channel.close();
-            };
+    const [liveDataReady, setLiveDataReady] = useState(false);
+    const [showSystem, setShowSystem] = useState(false);
+    const closeSystem = useCallback(() => setShowSystem(false), []);
+    const [focusTarget, setFocusTarget] = useState<{ target: Target; nonce: number } | null>(null);
+    const notifications = useNotifications(bays, isAuthenticated && !isPublic, liveDataReady);
+    const inspectNotice = (notice: Notice) => {
+        notifications.markRead(notice.id);
+        if (notice.target?.kind === 'system') setShowSystem(true);
+        else if (notice.target) {
+            setActiveTab(notice.target.kind === 'bay' ? 'dashboard' : 'camera');
+            setFocusTarget({ target: notice.target, nonce: Date.now() });
         }
+    };
+    useEffect(() => {
+        if (!focusTarget || focusTarget.target.kind === 'system') return;
+        const { target } = focusTarget;
+        const frame = requestAnimationFrame(() => {
+            const element = document.getElementById(`${target.kind}-${target.id}`);
+            element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element?.focus({ preventScroll: true });
+        });
+        const timer = setTimeout(() => setFocusTarget(null), 5000);
+        return () => { cancelAnimationFrame(frame); clearTimeout(timer); };
+    }, [focusTarget]);
 
-        // ── Admin Dashboard: Poll the Python AI Backend ──
-        const channel = new BroadcastChannel("terminalsight-sync");
-        
-        const fetchAIData = async () => {
-            setNow(new Date());
-            
+    // Every display polls the same snapshot; no separate browser countdown can drift.
+    useEffect(() => {
+        let stopped = false;
+        let timer: ReturnType<typeof setTimeout>;
+        let controller: AbortController;
+        const clock = setInterval(() => setNow(new Date()), 1000);
+        const poll = async () => {
+            controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
             try {
-                // Fetch JSON Status & Timer in parallel for speed
-                const [statusRes, timerRes] = await Promise.all([
-                    fetch("http://127.0.0.1:5000/api/status", { mode: 'cors' }),
-                    fetch("http://127.0.0.1:5000/api/timers", { mode: 'cors' })
-                ]);
-
-                const statusData = await statusRes.json();
-                const timerData = await timerRes.json();
-
-                setBays((prev) => {
-                    const newBays = prev.map((bay) => {
-                        // Keep time decrementing for other bays in the UI
-                        let nextTime = bay.timeRemaining;
-                        if (nextTime !== undefined && bay.id !== 6 && bay.id !== 1) {
-                            nextTime = Math.max(0, nextTime - 1);
-                        }
-
-                        // Match React Bay ID (e.g., 6) to Python JSON Key (e.g., "Bay_6")
-                        const aiKey = `Bay_${bay.id}`;
-                        const aiStatus = statusData[aiKey];
-
-                        // If backend didn't provide data for this bay, just decrement its timer and continue
-                        if (!aiStatus) {
-                            // If it hit 0 naturally, transition to Overstaying
-                            if (bay.status === "Occupied" && nextTime === 0 && bay.id !== 6 && bay.id !== 1) {
-                                return { ...bay, status: "Overstaying" as const, timeRemaining: 0 };
-                            }
-                            return { ...bay, timeRemaining: nextTime };
-                        }
-
-                        // Normalize Python's ALL_CAPS string to React's Capitalized literal types
-                        let normalizedStatus: "Available" | "Occupied" | "Overstaying" = "Available";
-                        if (aiStatus === "OCCUPIED") normalizedStatus = "Occupied";
-                        if (aiStatus === "OVERSTAYING") normalizedStatus = "Overstaying";
-
-                        // Parse the Timer ONLY if it's Bay 1 or Bay 6 and it's occupied
-                        if ((bay.id === 6 || bay.id === 1) && (normalizedStatus === "Occupied" || normalizedStatus === "Overstaying")) {
-                            const elapsedSeconds = timerData[aiKey] || 0;
-                            // 15 minutes = 900 seconds
-                            const MAX_TIME = 15 * 60;
-                            nextTime = Math.max(0, MAX_TIME - elapsedSeconds);
-
-                            // If countdown hits 0, trigger Overstaying
-                            if (nextTime === 0) {
-                                normalizedStatus = "Overstaying";
-                            }
-                        }
-
-                        return {
-                            ...bay,
-                            status: normalizedStatus,
-                            timeRemaining: nextTime,
-                            vehicleType: bay.id === 6 ? "Bus" : (bay.id === 1 ? "UV Express" : bay.vehicleType) 
-                        };
-                    });
-
-                    // Save and broadcast state to Signage view
-                    const stringifiedBays = JSON.stringify(newBays);
-                    localStorage.setItem("terminalsight-state", stringifiedBays);
-                    channel.postMessage(stringifiedBays);
-                    return newBays;
-                });
-
-            } catch (error) {
-                // Silent catch: If Python isn't running, the UI just continues with its previous state
-                // This prevents the console from being spammed if the backend crashes
+                const response = await fetch('/api/bays', { signal: controller.signal, cache: 'no-store' });
+                if (!response.ok) throw new Error('Bay data unavailable');
+                const data: { bays: Bay[] } = await response.json();
+                if (!Array.isArray(data.bays) || data.bays.length !== 10) throw new Error('Invalid bay data');
+                if (stopped) return;
+                setBays(previous => data.bays.map(bay => ({ ...bay,
+                    audioPlayed: bay.status !== 'Available' && previous.find(old => old.id === bay.id)?.sessionId === bay.sessionId
+                        ? previous.find(old => old.id === bay.id)?.audioPlayed : false,
+                })));
+                setLiveDataReady(true);
+            } catch {
+                if (!stopped) setLiveDataReady(false);
+            } finally {
+                clearTimeout(timeout);
+                if (!stopped) timer = setTimeout(poll, 1000);
             }
         };
-
-        // Poll the AI backend every 1 second
-        const intervalId = setInterval(fetchAIData, 1000);
-        return () => {
-            clearInterval(intervalId);
-            channel.close();
-        };
+        void poll();
+        return () => { stopped = true; controller?.abort(); clearTimeout(timer); clearInterval(clock); };
     }, []);
 
     // Text-to-Speech (TTS) PA System Logic
     useEffect(() => {
-        if (window.location.pathname === "/signage") return;
+        if (isPublic || !isAuthenticated || !liveDataReady) return;
 
         const savedSettings = localStorage.getItem("terminalsight-settings");
         const settings = savedSettings ? JSON.parse(savedSettings) : { paVolume: 80, language: "bisaya" };
@@ -164,16 +103,15 @@ export default function App() {
 
         if (updated) {
             setBays(nextBays);
-            const stringifiedBays = JSON.stringify(nextBays);
-            localStorage.setItem("terminalsight-state", stringifiedBays);
-            const channel = new BroadcastChannel("terminalsight-sync");
-            channel.postMessage(stringifiedBays);
-            channel.close();
         }
-    }, [bays]);
+    }, [bays, liveDataReady, isPublic, isAuthenticated]);
 
     if (window.location.pathname === "/signage") {
-        return <PublicSignageView bays={bays} now={now} />;
+        return <PublicSignageView bays={bays} now={now} live={liveDataReady} />;
+    }
+
+    if (window.location.pathname === "/public-view") {
+        return <PublicView bays={bays} now={now} live={liveDataReady} />;
     }
 
     if (!isAuthenticated) {
@@ -183,9 +121,14 @@ export default function App() {
     return (
         <div className="flex h-screen print:h-auto bg-slate-50 overflow-hidden print:overflow-visible font-sans">
             <Sidebar
+                system={notifications.system}
+                onSystemDetails={() => setShowSystem(true)}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                onLogout={() => setIsAuthenticated(false)}
+                onLogout={() => {
+                    sessionStorage.removeItem("terminalsight-export-token");
+                    setIsAuthenticated(false);
+                }}
             />
 
             {/* Right panel */}
@@ -193,14 +136,19 @@ export default function App() {
                 <Header
                     clock={formatClock(now)}
                     date={formatDate(now)}
-                    onViewViolations={() => setActiveTab("violations")}
+                    notices={notifications.notices}
+                    markRead={notifications.markRead}
+                    markAllRead={notifications.markAllRead}
+                    inspect={inspectNotice}
                 />
 
+                {notifications.banners[0] && <div className="relative z-40 flex shrink-0 justify-center px-5 pt-3 print:hidden"><NotificationBanner key={notifications.banners[0].id} notice={notifications.banners[0]} dismiss={notifications.dismiss} inspect={inspectNotice} /></div>}
+                {showSystem && <SystemDetails system={notifications.system} close={closeSystem} testNotification={notifications.testNotification} />}
                 {/* Scrollable content */}
                 <main className="flex-1 overflow-y-auto print:overflow-visible print:p-0 p-5 space-y-5">
-                    {activeTab === "dashboard" && <DashboardView bays={bays} />}
+                    {activeTab === "dashboard" && <DashboardView bays={bays} focusedBay={focusTarget?.target.kind === "bay" ? focusTarget.target.id : undefined} />}
                     {activeTab === "analytics" && <AnalyticsView />}
-                    {activeTab === "camera" && <CameraZonesView />}
+                    {activeTab === "camera" && <CameraZonesView health={notifications.system.cameras} localOnline={notifications.system.local === "Online"} focusedCamera={focusTarget?.target.kind === "camera" ? focusTarget.target.id : undefined} />}
                     {activeTab === "violations" && <ViolationLogsView />}
                     {activeTab === "settings" && <SettingsView />}
                 </main>

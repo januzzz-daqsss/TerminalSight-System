@@ -1,3 +1,4 @@
+import type { SystemStatus } from "../../notifications/model";
 import {
     LayoutDashboard,
     Camera,
@@ -8,6 +9,7 @@ import {
     Wifi,
     ChevronRight,
     MonitorUp,
+    Users,
     ExternalLink,
     LogOut,
 } from "lucide-react";
@@ -24,10 +26,14 @@ export function Sidebar({
     activeTab,
     setActiveTab,
     onLogout,
+    system,
+    onSystemDetails,
 }: {
     activeTab: string;
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
+    system: SystemStatus;
+    onSystemDetails: () => void;
 }) {
     return (
         <aside className="w-64 min-h-screen bg-slate-900 flex flex-col flex-shrink-0 print-hide">
@@ -48,14 +54,10 @@ export function Sidebar({
                 </div>
             </div>
 
-            {/* System status pill */}
-            <div className="mx-4 mt-4 px-3 py-2 rounded-lg bg-slate-800 flex items-center gap-2">
-                <Wifi size={12} className="text-emerald-400" />
-                <span className="text-emerald-400 text-[11px] font-semibold">
-                    System Online
-                </span>
-                <span className="ml-auto w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            </div>
+            <button onClick={onSystemDetails} aria-label="Open local and cloud system status" className="mx-4 mt-4 space-y-2 rounded-lg bg-slate-800 px-3 py-3 text-left text-xs hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-400">
+                <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-slate-300"><Wifi size={12} />Local System</span><span className={system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{system.local}</span></div>
+                <div className="flex items-center justify-between gap-2"><span className="text-slate-300">Cloud Sync</span><span className={system.cloud.state === 'Synced' && system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{system.local === 'Online' ? system.cloud.state : 'Unknown'}</span></div>
+            </button>
 
             {/* Navigation */}
             <nav className="flex-1 px-3 mt-6 flex flex-col gap-1 pb-4">
@@ -81,6 +83,14 @@ export function Sidebar({
                 })}
 
                 <div className="mt-auto pt-4 flex flex-col gap-1">
+                    <button
+                        onClick={() => window.open("/public-view", "_blank", "noopener,noreferrer")}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
+                    >
+                        <Users size={17} />
+                        <span className="flex-1 text-left">Launch Public View</span>
+                        <ExternalLink size={14} className="opacity-70" />
+                    </button>
                     <button
                         onClick={() =>
                             window.open("/signage", "_blank", "noopener,noreferrer")

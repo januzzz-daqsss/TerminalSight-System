@@ -6,7 +6,7 @@ import { PublicBayCard } from "../ui/PublicBayCard";
 // Displays public-facing slot status on external terminal monitors
 // Dedicated full-screen view for the external terminal display monitors.
 
-export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
+export function PublicSignageView({ bays, now, live }: { bays: Bay[]; now: Date; live: boolean }) {
     const overstayingMsgs = bays
         .filter((b) => b.status === "Overstaying")
         .map(
@@ -50,6 +50,8 @@ export function PublicSignageView({ bays, now }: { bays: Bay[]; now: Date }) {
                     </div>
                 </div>
             </div>
+
+            {!live && <div role="status" className="bg-amber-500/20 px-6 py-2 text-center font-bold text-amber-200">Live updates unavailable. Check with terminal staff.</div>}
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col justify-center px-4 py-8 relative overflow-hidden bg-gradient-to-br from-slate-950 via-emerald-950/20 to-slate-900">
