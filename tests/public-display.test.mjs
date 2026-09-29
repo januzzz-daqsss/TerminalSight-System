@@ -25,7 +25,7 @@ test('passenger states and times use shared server values, including the zero bo
 test('passenger list renders recognized, detecting, unknown and stale-data states without OCR debug', async () => {
     const { PublicView } = await server.ssrLoadModule('/src/components/views/PublicView.tsx');
     const bays = [
-        { id: 1, status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', routeDetails: ['Ma-a'], timeRemaining: 120 },
+        { id: 1, status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', routeDetails: ['MA-A', 'NCCC', 'SM CITY', 'BUHANGIN'], timeRemaining: 120 },
         { id: 2, status: 'Occupied', vehicleType: 'UV Express', ocrState: 'Detecting', timeRemaining: 0 },
         { id: 3, status: 'Overstaying', ocrState: 'Unknown', timeRemaining: -1 },
         { id: 4, status: 'Available', route: 'Old route', routeDetails: ['Stale destination'] },
@@ -33,7 +33,7 @@ test('passenger list renders recognized, detecting, unknown and stale-data state
     const html = renderToStaticMarkup(createElement(PublicView, { bays, now: new Date(0), live: false }));
     for (const text of ['Panabo → Davao', 'Route Detecting...', 'Route Unknown', 'BOARDING', 'DEPARTING', 'DELAYED', 'AVAILABLE', 'Live updates unavailable']) assert.ok(html.includes(text), text);
     assert.ok(!html.includes('ocrDebug'));
-    assert.ok(html.includes('· Ma-a'));
+    assert.ok(html.includes('· MA-A · NCCC · SM CITY · BUHANGIN'));
     assert.ok(!html.includes('Stale destination'));
 });
 test('driver display keeps bay-card/map presentation and adds route and timer', async () => {

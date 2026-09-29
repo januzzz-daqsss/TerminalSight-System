@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import unicodedata
+from route_details import DynamicRouteDetails
 
 CONFIG_PATH = Path(__file__).resolve().parent / 'config' / 'routes.json'
 
@@ -17,17 +18,6 @@ def load_config(path=CONFIG_PATH):
     for route in config['routes']:
         if not route['aliases'] or any(len(normalize(alias).replace(' ', '')) < 4 for alias in route['aliases']):
             raise ValueError('Route aliases require at least four letters')
-        details = route.get('secondary_destinations', [])
-        if len({detail['id'] for detail in details}) != len(details):
-            raise ValueError('Secondary destination IDs must be unique within a route')
-        aliases_seen = set()
-        for detail in details:
-            if not isinstance(detail['label'], str) or not detail['label'].strip() or not detail['aliases']:
-                raise ValueError('Secondary destinations require a label and aliases')
-            aliases = {normalize(alias) for alias in detail['aliases']}
-            if any(len(alias.replace(' ', '')) < 3 for alias in aliases) or aliases & aliases_seen:
-                raise ValueError('Secondary aliases require at least three letters and must be unambiguous')
-            aliases_seen.update(aliases)
     config.setdefault('departure_confirm_seconds', 5)
     for name in ('sample_interval_seconds', 'evidence_window_seconds', 'unknown_after_seconds', 'departure_confirm_seconds'):
         if not isinstance(config[name], (int, float)) or config[name] <= 0:
@@ -61,10 +51,10 @@ class TemporalRoute:
         self.route = None
         self.confidence = 0.0
         self.support = 0
-        self.confirmed_secondary = set()
+        self.details = DynamicRouteDetails(config)
         self.debug = {'raw': '', 'normalized': '', 'candidate': None, 'confidence': 0, 'support': 0}
 
-    def observe(self, text, score, now):
+    def observe(self, text, score, now, lines=None):
         normalized = normalize(text)
         if score >= self.config['minimum_ocr_score'] and normalized:
             self.observations.append((now, normalized, score))
@@ -110,19 +100,10 @@ class TemporalRoute:
                 incumbent = next((item[0] for item in ranked if item[2]['id'] == self.route['id']), 0)
                 if top[1] >= 6 and top[0] >= 0.95 and top[0] - incumbent >= 0.2:
                     self.route, self.confidence, self.support = top[2], top[0], top[1]
-                    self.confirmed_secondary.clear()
-        if self.route:
-            for detail in self.route.get('secondary_destinations', []):
-                # Short place names such as MAA need exact whole words, never fuzzy fragments.
-                aliases = {' ' + normalize(alias) + ' ' for alias in detail['aliases']}
-                support = sum(any(alias in ' ' + observed + ' ' for alias in aliases)
-                              for _, observed, _ in self.observations)
-                if support >= self.config['minimum_observations']:
-                    self.confirmed_secondary.add(detail['id'])
+        self.details.observe(lines or [], now, self.route)
 
     def public(self, now):
         return {'route': self.route['label'] if self.route else None,
-                'route_details': [detail['label'] for detail in self.route.get('secondary_destinations', [])
-                                  if detail['id'] in self.confirmed_secondary] if self.route else [],
+                'route_details': self.details.public() if self.route else [],
                 'ocr_state': 'Recognized' if self.route else ('Unknown' if now - self.started >= self.config['unknown_after_seconds'] else 'Detecting'),
                 'ocr_confidence': round(self.confidence, 3) if self.route else None}

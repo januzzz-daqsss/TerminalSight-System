@@ -1,10 +1,7 @@
 ﻿{
   "routes": [
     {"id": "panabo-tagum", "label": "Panabo - Tagum", "aliases": ["PANABO TAGUM", "TAGUM"]},
-    {"id": "panabo-davao", "label": "Panabo - Davao", "aliases": ["PANABO DAVAO", "DAVAO"],
-     "secondary_destinations": [
-       {"id": "ma-a", "label": "Ma-a", "aliases": ["MAA", "MA-A", "MA A"]}
-     ]}
+    {"id": "panabo-davao", "label": "Panabo - Davao", "aliases": ["PANABO DAVAO", "DAVAO"]}
   ],
   "sample_interval_seconds": 1.5,
   "departure_confirm_seconds": 5,

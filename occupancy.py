@@ -69,13 +69,13 @@ class OccupancyState:
             for bay in bays:
                 self.sessions.pop(bay, None)
 
-    def apply_ocr(self, bay, session_id, text, score, now=None):
+    def apply_ocr(self, bay, session_id, text, score, now=None, lines=None):
         now = time.monotonic() if now is None else now
         with self.lock:
             current = self.sessions.get(bay)
             if not current or current['id'] != session_id:
                 return False  # Discard late results belonging to a departed vehicle.
-            current['route_state'].observe(text, score, now)
+            current['route_state'].observe(text, score, now, lines=lines)
             return True
 
     def snapshot(self, now=None, debug=False):
