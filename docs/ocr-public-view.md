@@ -12,6 +12,8 @@ The sidebar has matching launch buttons, with Public View immediately above Publ
 
 - `config/routes.json`: route IDs, labels, aliases, crop regions, sampling/matching thresholds.
 - `route_recognition.py`: normalization and temporal known-route matching.
+- `route_details.py`: dynamic extra sign labels using per-line confidence, position
+  and repeated readings; no list of allowed secondary destinations.
 - `occupancy.py`: thread-safe session identity, route state, and shared monotonic clock.
 - `ocr_worker.py`: bounded background OCR queue and explicit local-model loading.
 - `scripts/test_sample_ocr.py`: repeatable real-video OCR diagnostics.
@@ -41,8 +43,8 @@ The sidebar has matching launch buttons, with Public View immediately above Publ
 - `src/notifications/NotificationUI.tsx`: OCR service state in system details.
 - `tests/test_occupancy_export.py`: API timer consistency and debug-access regression tests.
 
-Changes from previous notification/CSV tasks remain in the working tree. This feature
-has not been committed or pushed.
+The earlier notification/OCR work is preserved in commit `c25c9e3`. The dynamic
+secondary-label update is a new working-tree change and has not been committed or pushed.
 
 ## Dependencies and database
 
@@ -123,17 +125,26 @@ before terminal deployment. Ambiguous aliases are not automatically resolved.
 ## Public displays and timing
 
 - `/public-view`: passenger table with BAY / ROUTE / VEHICLE / STATUS / TIME.
-- Confirmed secondary destinations appear beside the main route, for example
-  **Panabo → Davao · Ma-a**. Add entries to a route's `secondary_destinations` in
-  `config/routes.json`, using `id`, `label` and `aliases`, then restart Flask.
-  The initial entry recognizes MAA, MA-A and MA A under the Davao route. Other names
-  require an approved configuration entry; arbitrary windshield slogans are not shown.
-  Short secondary names require exact whole-word matches in at least three accepted
-  observations within the 30-second evidence window. Repeated words in one frame count
-  once. A main route must be confirmed first. Details survive blank reads and short
-  obstructions, and clear on route correction or occupancy-session reset.
+- Repeated extra destination-sign text appears beside the main route, for example
+  **Panabo → Davao · MA-A · NCCC** when those names are actually read. No secondary
+  destination configuration is required. The previous Ma-a-only list has been removed;
+  the main Panabo/Davao/Tagum route mappings remain configured as before.
+  The worker preserves each OCR line's own confidence and rectangle. Extra labels
+  require at least 0.85 line confidence and three matching sampled frames within 30
+  seconds. They must be beside the main sign at its height or just beneath it; upper
+  windshield branding, common service/slogan text and fleet/plate numbers are filtered.
+  The same name repeated in one frame gets only one vote. Punctuation variants such
+  as MA-A / MA A / MAA are deduplicated; the spelling displayed comes from OCR, and
+  uppercase acronyms such as NCCC remain uppercase. Multiword names remain together.
+  Main-route words are removed from extra labels. A main route must be confirmed
+  before any extras are published. Details survive blank reads and short obstructions,
+  and clear on route correction or occupancy-session reset.
   The bay API exposes these labels in `routeDetails`; the driver map keeps its main
   route label. No dependencies or database changes were added for secondary destinations.
+  This is a text-and-position heuristic, not a geographic destination classifier:
+  repeated OCR errors or unrelated text in the same sign band can still appear. Text
+  outside the crop/band, below the confidence threshold, or on a scrolling sign without
+  three repeated complete readings may be missed. It does not invent unseen destinations.
 - `/signage`: existing driver map, with route, loading timer and departure status.
 - Both open in a new tab from the lower sidebar action area, before admin authentication
   checks, and can be opened directly on another display using the same local server.
@@ -210,9 +221,17 @@ The automated fixtures verify Departing/Delayed boundaries without waiting 15 mi
 
 ## Validation and limitations observed
 
-- 31 Python tests passed; the 3 public-display tests passed after secondary destinations
-  were added. The 4 unchanged notification tests passed in the previous validation.
-  Production build passed.
+- Dynamic secondary-label update: 36 Python tests and 7 frontend/notification tests
+  passed; TypeScript/Vite production build passed (existing large-bundle warning).
+  The 16-sample-per-camera video test recognized the bus's MA-A text dynamically at
+  3 seconds, without a configured secondary destination, and retained it on the next
+  ten associated observations. Upper windshield slogans were not published. The UV
+  retained its Davao route and published no spurious extra labels in the sampled window.
+  NCCC and multiple unlisted names passed controlled OCR-line and public-rendering
+  fixtures; this is not a claim that NCCC was seen in the supplied videos.
+- Dynamic label tests cover unlisted acronyms/multiword names, confidence/position
+  filtering, per-frame deduplication, evidence expiry, main-word removal, route correction
+  and departure cleanup. Public View tests render multiple extra names together.
 - Actual local OCR model initialization and inference succeeded on Python 3.14.
 - Both public URLs and the new bay API returned 200 through Vite.
 - Both annotated MJPEG streams remained operational with OCR enabled.

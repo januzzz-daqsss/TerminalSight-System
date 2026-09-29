@@ -7,7 +7,13 @@ import numpy as np
 
 from route_recognition import TemporalRoute, load_config, normalize
 from occupancy import OccupancyState
-from ocr_worker import OCRWorker, crop_sign
+from ocr_worker import OCRWorker, crop_sign, read_sign
+from types import SimpleNamespace
+
+
+def sign_lines(*extras, destination='DAVAO'):
+    return [{'text': destination, 'score': .99, 'box': [.35, .50, .65, .60]},
+            *[{'text': text, 'score': .96, 'box': [.10, .62, .30, .69]} for text in extras]]
 
 
 class TemporalOCRTests(unittest.TestCase):
@@ -59,33 +65,61 @@ class TemporalOCRTests(unittest.TestCase):
 
     def test_secondary_destination_requires_three_reads_and_survives_misses(self):
         route = TemporalRoute(self.config, 0)
-        for now, text in enumerate(['DAVAO MA-A', 'DAVAO MA·A']):
-            route.observe(text, .95, now)
+        for now, text in enumerate(['MA-A', 'MA·A']):
+            route.observe('DAVAO ' + text, .95, now, lines=sign_lines(text))
         self.assertEqual(route.public(2)['route_details'], [])
-        route.observe('DAVAO MAA', .95, 3)
-        self.assertEqual(route.public(3)['route_details'], ['Ma-a'])
+        route.observe('DAVAO MAA', .95, 3, lines=sign_lines('MAA'))
+        self.assertEqual(route.public(3)['route_details'], ['MA-A'])
         route.observe('', 0, 50)
-        self.assertEqual(route.public(50)['route_details'], ['Ma-a'])
+        self.assertEqual(route.public(50)['route_details'], ['MA-A'])
         for index in range(6):
             route.observe('TAGUM', .99, 51 + index * 1.5)
         self.assertEqual(route.public(60)['route'], 'Panabo - Tagum')
         self.assertEqual(route.public(60)['route_details'], [])
 
-    def test_secondary_names_require_exact_words_quality_and_matching_parent(self):
-        for text, quality in [('MAA', .99), ('TAGUM MAA', .99), ('DAVAO MAMA', .99),
-                              ('DAVAO XMAAX', .99), ('DAVAO MA', .99), ('DAVAO MAA', .3)]:
+    def test_unlisted_names_acronyms_and_multiple_places_are_dynamic(self):
+        for destination in ('DAVAO', 'TAGUM'):
             route = TemporalRoute(self.config, 0)
             for now in (0, 1.5, 3):
-                route.observe(text, quality, now)
-            self.assertEqual(route.public(3)['route_details'], [], text)
+                route.observe(destination, .99, now,
+                              lines=sign_lines('MA-A', 'NCCC', 'SM CITY', 'BUHANGIN', destination=destination))
+            self.assertEqual(route.public(3)['route_details'], ['MA-A', 'NCCC', 'SM CITY', 'BUHANGIN'])
+
+    def test_secondary_names_need_positions_quality_and_a_main_sign_anchor(self):
+        cases = [[], sign_lines('NCCC')[1:],
+                 [sign_lines()[0], {'text': 'NCCC', 'score': .5, 'box': [.1, .62, .3, .69]}],
+                 [sign_lines()[0], {'text': 'BRANDING', 'score': .99, 'box': [.1, .05, .3, .15]}],
+                 sign_lines('AIRCONDITIONED', 'GOD IS GOOD', 'WI', '5903', 'ABC 1234')]
+        for lines in cases:
+            route = TemporalRoute(self.config, 0)
+            for now in (0, 1.5, 3):
+                route.observe('DAVAO', .99, now, lines=lines)
+            self.assertEqual(route.public(3)['route_details'], [], lines)
+
+    def test_duplicates_and_expired_reads_do_not_confirm_extra_names(self):
         route = TemporalRoute(self.config, 0)
-        route.observe('DAVAO MAA MAA MAA', .99, 0)
+        route.observe('DAVAO', .99, 0, lines=sign_lines('NCCC', 'NCCC', 'NCCC'))
+        route.observe('DAVAO', .99, 0, lines=sign_lines('NCCC'))
         for now in (1.5, 3):
             route.observe('DAVAO', .99, now)
         self.assertEqual(route.public(3)['route_details'], [])
         for now in (40, 80, 120):
-            route.observe('DAVAO MAA', .99, now)
+            route.observe('DAVAO', .99, now, lines=sign_lines('NCCC'))
         self.assertEqual(route.public(120)['route_details'], [])
+
+    def test_main_route_text_is_removed_from_combined_destination_line(self):
+        route = TemporalRoute(self.config, 0)
+        for now in (0, 1.5, 3):
+            route.observe('DAVAO NCCC', .99, now, lines=sign_lines(destination='DAVAO / NCCC'))
+        self.assertEqual(route.public(3)['route_details'], ['NCCC'])
+
+    def test_another_known_place_can_be_an_extra_without_duplicating_main_route(self):
+        route = TemporalRoute(self.config, 0)
+        for now in (0, 1.5, 3):
+            route.observe('DAVAO', .99, now)
+        for now in (4.5, 6, 7.5):
+            route.observe('DAVAO TAGUM', .99, now, lines=sign_lines('TAGUM', 'PANABO', 'DAVAO'))
+        self.assertEqual(route.public(8)['route_details'], ['TAGUM'])
 
 
 class OccupancySessionTests(unittest.TestCase):
@@ -146,13 +180,13 @@ class OccupancySessionTests(unittest.TestCase):
         state = OccupancyState()
         session = state.update('Bay_6', self.detection, now=0)
         for now in (0, 1.5, 3):
-            state.apply_ocr('Bay_6', session['id'], 'DAVAO MA-A', .95, now=now)
+            state.apply_ocr('Bay_6', session['id'], 'DAVAO MA-A', .95, now=now, lines=sign_lines('MA-A'))
         state.update('Bay_6', None, now=4)
-        self.assertEqual(state.snapshot(now=4)[5]['routeDetails'], ['Ma-a'])
+        self.assertEqual(state.snapshot(now=4)[5]['routeDetails'], ['MA-A'])
         state.update('Bay_6', None, now=5)
         self.assertEqual(state.snapshot(now=5)[5]['routeDetails'], [])
         state.update('Bay_6', self.detection, now=6)
-        self.assertFalse(state.apply_ocr('Bay_6', session['id'], 'DAVAO MA-A', .99, now=7))
+        self.assertFalse(state.apply_ocr('Bay_6', session['id'], 'DAVAO MA-A', .99, now=7, lines=sign_lines('MA-A')))
         self.assertEqual(state.snapshot(now=7)[5]['routeDetails'], [])
 
     def test_different_vehicle_box_starts_new_session(self):
@@ -226,6 +260,23 @@ class OccupancySessionTests(unittest.TestCase):
 
 
 class SignCropTests(unittest.TestCase):
+    def test_read_sign_preserves_per_line_quality_and_normalized_locations(self):
+        image = np.zeros((100, 200, 3), dtype=np.uint8)
+        result = SimpleNamespace(txts=['DAVAO', 'NCCC', 'noise'], scores=[.99, .88, .2],
+                                 boxes=[[[20, 50], [80, 50], [80, 60], [20, 60]],
+                                        [[90, 60], [140, 60], [140, 70], [90, 70]],
+                                        [[1, 1], [5, 1], [5, 5], [1, 5]]])
+        with patch('ocr_worker.create_engine') as factory:
+            engine = factory.return_value
+            engine.return_value = result
+            text, _, lines = read_sign(engine, image, include_lines=True)
+            self.assertEqual(text, 'DAVAO NCCC')
+            self.assertEqual(lines[1], {'text': 'NCCC', 'score': .88, 'box': [.45, .6, .7, .7]})
+            self.assertEqual(len(lines), 2)
+            engine.assert_called_once_with(image)
+            result.boxes = None
+            self.assertEqual(read_sign(engine, image, include_lines=True)[2], [])
+
     def test_uv_focus_stretches_vertical_lettering_and_bounds_image_size(self):
         config = load_config()
         frame = np.zeros((1080, 1920, 3), dtype=np.uint8)

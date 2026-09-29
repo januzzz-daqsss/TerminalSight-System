@@ -74,12 +74,26 @@ def crop_sign(frame, detection, config):
     return cv2.resize(crop, None, fx=scale, fy=scale * stretch, interpolation=cv2.INTER_CUBIC)
 
 
-def read_sign(engine, image, minimum_score=0.65):
+def read_sign(engine, image, minimum_score=0.65, include_lines=False):
     result = engine(image)
     texts = result.txts if result.txts is not None else []
     scores = result.scores if result.scores is not None else []
     accepted = [(text, float(score)) for text, score in zip(texts, scores) if float(score) >= minimum_score]
-    return (' '.join(text for text, _ in accepted), sum(score for _, score in accepted) / len(accepted)) if accepted else ('', 0.0)
+    summary = (' '.join(text for text, _ in accepted), sum(score for _, score in accepted) / len(accepted)) if accepted else ('', 0.0)
+    if not include_lines:
+        return summary
+    lines = []
+    boxes = getattr(result, 'boxes', None)
+    if boxes is not None:
+        height, width = image.shape[:2]
+        for text, score, box in zip(texts, scores, boxes):
+            if float(score) < minimum_score:
+                continue
+            xs, ys = [float(point[0]) / width for point in box], [float(point[1]) / height for point in box]
+            if xs and ys and max(xs) > min(xs) and max(ys) > min(ys):
+                lines.append({'text': text, 'score': float(score),
+                              'box': [min(xs), min(ys), max(xs), max(ys)]})
+    return (*summary, lines)
 
 
 class OCRWorker:
@@ -143,8 +157,8 @@ class OCRWorker:
                     return
                 bay, (session_id, image) = self.pending.popitem(last=False)
             try:
-                text, score = read_sign(engine, image, self.occupancy.config['minimum_ocr_score'])
-                self.occupancy.apply_ocr(bay, session_id, text, score)
+                text, score, lines = read_sign(engine, image, self.occupancy.config['minimum_ocr_score'], include_lines=True)
+                self.occupancy.apply_ocr(bay, session_id, text, score, lines=lines)
                 failures = 0
             except Exception as error:
                 failures += 1

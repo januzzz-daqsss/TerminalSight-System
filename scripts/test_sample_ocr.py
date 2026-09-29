@@ -41,12 +41,13 @@ def main():
                     image = crop_sign(frame, detection, state.config)
                     if image is None:
                         continue
-                    text, confidence = read_sign(engine, image)
-                    state.apply_ocr(bay, session['id'], text, confidence, now=seconds)
+                    text, confidence, lines = read_sign(engine, image, include_lines=True)
+                    state.apply_ocr(bay, session['id'], text, confidence, now=seconds, lines=lines)
                     row = state.snapshot(now=seconds, debug=True)[int(bay.split('_')[1]) - 1]
-                    row.update(camera=camera, video_seconds=seconds, processing_seconds=round(time.perf_counter() - start, 3))
+                    row.update(camera=camera, video_seconds=seconds, ocrLines=lines,
+                               processing_seconds=round(time.perf_counter() - start, 3))
                     records.append(row)
-                    print(camera, seconds, repr(text), row['route'], row['ocrState'], flush=True)
+                    print(camera, seconds, repr(text), row['route'], row['routeDetails'], row['ocrState'], flush=True)
                     if index == 0:
                         output_dir = ROOT / Path(args.output).parent
                         output_dir.mkdir(parents=True, exist_ok=True)
