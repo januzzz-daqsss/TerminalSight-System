@@ -35,7 +35,17 @@ the resulting files can later be used by the offline TerminalSight application.
 
 Use the same dataset version/splits as YOLO for comparison. Keep related frames from
 one recording in one split; this notebook only checks exact duplicates, not near-duplicates.
-20 epochs is a starting experiment, not a promised accuracy. Validation chooses `best.pth`;
+This revision starts a NEW 50-epoch manuscript-aligned experiment. Preserve your old
+20-epoch outputs; do not resume them into this changed experiment. Both implementations
+are Torchvision, NOT Detectron2. Correct that framework description in the manuscript.
+Use Roboflow v18 COCO JSON (416x416) for this baseline; SSD300 still internally uses
+300x300. 416 is not proven optimal: compare resolution on identical source images and
+splits using validation data before final test evaluation. v17 and v18 have different
+image counts, so comparing them alone does not isolate resolution. Stretch preprocessing
+changes aspect ratios; preserve the chosen preprocessing consistently at deployment.
+Roboflow augmentation is already baked into this export; extra online flipping is off.
+Do not treat exported augmented siblings or nearby video frames as independent splits.
+50 epochs is an experimental budget, not a promised accuracy. Validation chooses `best.pth`;
 the test set is reserved for final evaluation.
 ''')
 markdown('## 1. Install the evaluation package and check the GPU\nKeep Colab\'s matching PyTorch/Torchvision installation.')
@@ -65,7 +75,7 @@ drive.mount('/content/drive')
 from pathlib import Path
 from datetime import datetime
 import subprocess
-RUN_NAME = 'run_' + datetime.now().strftime('%Y%m%d_%H%M%S')
+RUN_NAME = 'v18_manuscript_' + datetime.now().strftime('%Y%m%d_%H%M%S_%f')
 OUTPUT_ROOT = Path('/content/drive/MyDrive/TerminalSight/training') / RUN_NAME
 OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
 with (OUTPUT_ROOT / 'training_environment.txt').open('w') as target:
@@ -110,11 +120,19 @@ any split, including test; loss of a class or an empty split still stops the rep
 and cleaned ZIP are saved to your run folder in Drive. Use that same cleaned dataset
 for both models and any new YOLO comparison; previous scores are not directly comparable.
 ''')
-code('REPAIR_EXACT_DUPLICATES = False\nEXCLUDE_CONFLICTING_IMAGES = False\n\n' + (ROOT / 'scripts/repair_coco_splits.py').read_text(encoding='utf-8') + '''
+code('REPAIR_EXACT_DUPLICATES = True\nEXCLUDE_CONFLICTING_IMAGES = True\n\n' + (ROOT / 'scripts/repair_coco_splits.py').read_text(encoding='utf-8') + '''
 
 import tempfile
 from train_colab_detectors import extract_dataset, inspect_dataset
 DATA_ROOT = extract_dataset(ZIP_PATH, Path(tempfile.mkdtemp(prefix='terminalsight_coco_')))
+# Fail early if the uploaded export does not match the selected experiment.
+import json, hashlib
+from train_colab_detectors import find_splits
+EXPECTED_EXPORT_SIZE = 416  # Use 640 only for a deliberately separate experiment.
+for split, annotation_path in find_splits(DATA_ROOT).items():
+    records = json.loads(annotation_path.read_text(encoding='utf-8-sig'))['images']
+    dimensions = {(record['width'], record['height']) for record in records}
+    assert dimensions == {(EXPECTED_EXPORT_SIZE, EXPECTED_EXPORT_SIZE)}, (split, dimensions)
 if REPAIR_EXACT_DUPLICATES:
     cleaned = repair_dataset(DATA_ROOT, Path(tempfile.mkdtemp(prefix='terminalsight_clean_')),
                              conflict_policy='exclude' if EXCLUDE_CONFLICTING_IMAGES else 'error')
@@ -124,6 +142,14 @@ if REPAIR_EXACT_DUPLICATES:
     print('Saving the cleaned dataset ZIP to Drive for reuse/resume...')
     shutil.make_archive(str(OUTPUT_ROOT / 'cleaned_dataset'), 'zip', cleaned)
 SPLITS = inspect_dataset(DATA_ROOT)
+manifest = {}
+from train_colab_detectors import CocoVehicles
+for split, annotation_path in SPLITS.items():
+    ds = CocoVehicles(annotation_path)
+    manifest[split] = {'images': len(ds), 'boxes': dict(ds.counts),
+                       'annotation_sha256': hashlib.sha256(annotation_path.read_bytes()).hexdigest()}
+(OUTPUT_ROOT / 'dataset_manifest.json').write_text(json.dumps(manifest, indent=2))
+print('Actual cleaned counts (use these in the manuscript):', manifest)
 print('Data ready:', DATA_ROOT)
 ''')
 markdown('## 6. Check the labels visually\nConfirm the boxes surround the correct buses and vans before proceeding.')
@@ -153,15 +179,25 @@ an epoch resumes from the previous completed epoch. No completed epoch means sta
 that model again with `resume=False`. Epochs means the total target, including resumed epochs.
 ''')
 code('''
-EPOCHS = 20
+EPOCHS = 50
 BATCH_SIZE = 2
 SEED = 42
-def run_training(model_name, learning_rate, resume=False):
+FRCNN_SIZE = 416  # For square v18 images; the FPN may pad tensors to stride boundaries.
+DATASET_VERSION = 'Roboflow v18; stretch 416; 3 outputs; horizontal flip'
+ONLINE_FLIP = False  # Export already includes augmented images.
+CONFIDENCE = 0.50  # Prespecified P/R/F1 threshold; never tune on the test set.
+MATCH_IOU = 0.50
+MODELS = ('fasterrcnn_resnet50_fpn', 'ssd300_vgg16')
+def run_training(model_name, learning_rate, optimizer, resume=False):
     output = OUTPUT_ROOT / model_name
     command = [sys.executable, '-u', '/content/train_colab_detectors.py',
                '--dataset', str(DATA_ROOT), '--model', model_name, '--output', str(output),
                '--epochs', str(EPOCHS), '--batch-size', str(BATCH_SIZE),
-               '--lr', str(learning_rate), '--seed', str(SEED)]
+               '--lr', str(learning_rate), '--seed', str(SEED),
+               '--frcnn-size', str(FRCNN_SIZE), '--optimizer', optimizer,
+               '--dataset-version', DATASET_VERSION]
+    if not ONLINE_FLIP:
+        command += ['--no-online-flip']
     if resume:
         last = output / 'last.pth'
         assert last.is_file(), f'No completed epoch to resume: {last}'
@@ -173,9 +209,9 @@ markdown('''
 The first run downloads pretrained COCO weights. The classifier is replaced for
 background/Bus/UV. Watch training loss and validation mAP; wait until **Finished**.
 ''')
-code("run_training('fasterrcnn_resnet50_fpn', learning_rate=0.002, resume=False)")
-markdown('## 9. Train SSD300 (VGG16)\nRun after Faster R-CNN finishes. It gets its own checkpoint folder.')
-code("run_training('ssd300_vgg16', learning_rate=0.001, resume=False)")
+code("run_training('fasterrcnn_resnet50_fpn', learning_rate=0.002, optimizer='sgd', resume=False)")
+markdown('## 9. Train SSD300 (VGG16)\nRun after Faster R-CNN finishes. Uses AdamW and StepLR; 0.0001 is a starting learning rate to validate, not an exact reconstruction of the old experiment. Internal input stays 300x300.')
+code("run_training('ssd300_vgg16', learning_rate=0.0001, optimizer='adamw', resume=False)")
 markdown('''
 ## 10. Review validation curves
 `map_50` is mAP@0.50; `map_50_95` averages IoU 0.50 through 0.95. Values are fractions:
@@ -207,8 +243,58 @@ else:
         checkpoint = OUTPUT_ROOT / model_name / 'best.pth'
         subprocess.run([sys.executable, '-u', '/content/train_colab_detectors.py',
                         '--dataset', str(DATA_ROOT), '--evaluate', str(checkpoint),
-                        '--batch-size', str(BATCH_SIZE)], check=True)
+                        '--batch-size', str(BATCH_SIZE), '--confidence', str(CONFIDENCE),
+                        '--match-iou', str(MATCH_IOU)], check=True)
         print(model_name, (checkpoint.parent / 'test_metrics.json').read_text())
+''')
+markdown('''
+## 11b. Manuscript metrics, confusion matrices, and speed
+P/R/F1 use prespecified confidence and IoU thresholds, score-ordered one-to-one
+class-agnostic matching. Wrong classes count as an FP and FN. COCO AP is computed
+separately with its standard class-wise matching and is not fixed-threshold precision.
+Matrices use rows=true, columns=predicted, with background for unmatched detections
+or labels (not a vehicle class or measured true negative). Report micro and macro
+averages explicitly. All metric fractions are converted to percentages in CSV.
+Timing uses batch 1, ten warm-up calls and three passes over the test set, with GPU
+synchronization. It includes model resizing and postprocessing, but excludes disk I/O,
+CPU-to-GPU transfer, OCR, tracking, and UI. FPS is 1000/mean_ms. Compare speed on the
+same device and software; these are NOT complete TerminalSight pipeline FPS.
+''')
+code('''
+import csv, numpy as np
+if 'test' in SPLITS:
+    rows = []
+    for model_name in MODELS:
+        result = json.loads((OUTPUT_ROOT / model_name / 'test_metrics.json').read_text())
+        for group, metrics in {**result['per_class'], 'micro': result['micro'], 'macro': result['macro']}.items():
+            rows.append({'model': model_name, 'class_or_average': group,
+                         **{key + '_percent': 100 * metrics[key] for key in ('precision', 'recall', 'f1')},
+                         'overall_map50_percent': 100 * result['map_50'],
+                         'overall_map50_95_percent': 100 * result['map_50_95'],
+                         'mean_ms': result['timing']['mean_ms'], 'fps': result['timing']['fps'],
+                         'confidence': CONFIDENCE, 'iou': MATCH_IOU})
+        raw = np.array(result['confusion_matrix'])
+        normalized = raw / np.maximum(raw.sum(axis=1, keepdims=True), 1)
+        fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+        for axis, matrix, title in zip(axes, (raw, normalized), ('Counts', 'Normalized by true class')):
+            axis.imshow(matrix, cmap='Blues')
+            axis.set_xticks(range(3), result['matrix_labels'], rotation=30)
+            axis.set_yticks(range(3), result['matrix_labels'])
+            axis.set_xlabel('Predicted'); axis.set_ylabel('True'); axis.set_title(title)
+            for i in range(3):
+                for j in range(3):
+                    label = 'N/A' if i == j == 0 else (str(raw[i,j]) if title == 'Counts' else f'{matrix[i,j]:.2f}')
+                    axis.text(j, i, label, ha='center', va='center', color='darkorange')
+        fig.suptitle(model_name); fig.tight_layout()
+        fig.savefig(OUTPUT_ROOT / model_name / 'confusion_matrix.png', dpi=180)
+        plt.show()
+    with (OUTPUT_ROOT / 'manuscript_metrics.csv').open('w', newline='') as target:
+        writer = csv.DictWriter(target, fieldnames=list(rows[0]))
+        writer.writeheader(); writer.writerows(rows)
+    for row in rows:
+        print(row)
+else:
+    print('No test split; no final metrics generated.')
 ''')
 markdown('''
 ## 12. Download the model package
@@ -234,8 +320,13 @@ for model_name in MODELS:
         shutil.copy2(source / name, destination / name)
     if (source / 'test_metrics.json').is_file():
         shutil.copy2(source / 'test_metrics.json', destination / 'test_metrics.json')
+    if (source / 'confusion_matrix.png').is_file():
+        shutil.copy2(source / 'confusion_matrix.png', destination / 'confusion_matrix.png')
     (destination / 'class_names.json').write_text(json.dumps(CLASS_NAMES, indent=2))
 shutil.copy2(OUTPUT_ROOT / 'training_environment.txt', package / 'training_environment.txt')
+for name in ('dataset_manifest.json', 'deduplication_report.json', 'manuscript_metrics.csv'):
+    if (OUTPUT_ROOT / name).is_file():
+        shutil.copy2(OUTPUT_ROOT / name, package / name)
 archive = Path(shutil.make_archive('/content/TerminalSight_trained_models', 'zip', package))
 shutil.copy2(archive, OUTPUT_ROOT / archive.name)
 print('Backup in Google Drive:', OUTPUT_ROOT / archive.name)

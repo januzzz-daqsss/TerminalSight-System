@@ -1,13 +1,8 @@
 # detector.py
 import cv2
-from ultralytics import YOLO
+from detection_runtime import runtime
 from shapely.geometry import Polygon
 import numpy as np
-import threading
-
-# Load inference model
-model = YOLO("trained_models/yolov8n/best.pt")
-ai_lock = threading.Lock()
 
 # Parking slot coordinates
 SLOTS_SOUTHBOUND = {
@@ -27,20 +22,15 @@ slot_arrays_nb = {name: np.array(coords, np.int32) for name, coords in SLOTS_NOR
 OCCUPANCY_THRESHOLD = 0.20
 
 def analyze_frame(frame, camera="southbound", include_detections=False, annotate=True):
-    # Thread-safe model inference
-    with ai_lock:
-        results = model(frame, conf=0.5, verbose=False)[0]
+    results = runtime.predict(frame)
     
     # Convert bounding boxes to Shapely polygons
     detected_vehicles = []
-    for box in results.boxes:
-        x_min, y_min, x_max, y_max = map(int, box.xyxy[0].tolist())
-        class_name = str(model.names[int(box.cls.item())]).lower()
-        if class_name not in ("bus", "uv"):
-            continue
+    for box in results:
+        x_min, y_min, x_max, y_max = map(int, box['bbox'])
         vehicle_poly = Polygon([(x_min, y_min), (x_max, y_min), (x_max, y_max), (x_min, y_max)])
         detected_vehicles.append({"polygon": vehicle_poly, "bbox": [x_min, y_min, x_max, y_max],
-                                  "vehicle_type": "Bus" if class_name == "bus" else "UV Express"})
+                                  "vehicle_type": box['vehicle_type']})
 
     status_dictionary = {}
     assignments = {}

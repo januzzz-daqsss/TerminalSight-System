@@ -1,0 +1,83 @@
+{
+  "format_version": 1,
+  "architecture": "ssd300_vgg16",
+  "class_names": {
+    "0": "__background__",
+    "1": "bus",
+    "2": "uv"
+  },
+  "category_to_label": {
+    "1": 1,
+    "2": 2
+  },
+  "seed": 42,
+  "torch_version": "2.11.0+cu130",
+  "torchvision_version": "0.26.0+cu130",
+  "pillow_version": "11.3.0",
+  "training_annotation_sha256": "666bc1cc15266c98504793be2ba51b55e0721d8797924c2a6c13dd18338ba646",
+  "input": "RGB float32 [0,1]; model performs internal normalization and resize",
+  "resize": {
+    "size": [
+      300,
+      300
+    ]
+  },
+  "batch_size": 2,
+  "initial_lr": 0.0001,
+  "planned_epochs": 50,
+  "framework": "torchvision",
+  "optimizer": "adamw",
+  "online_flip": false,
+  "dataset_version": "Roboflow v18; stretch 416; 3 outputs; horizontal flip",
+  "scheduler": {
+    "name": "StepLR",
+    "step_size": 8,
+    "gamma": 0.2
+  },
+  "weight_decay": 0.0005,
+  "dataset_splits": {
+    "train": {
+      "images": 864,
+      "boxes": {
+        "bus": 756,
+        "uv": 534
+      },
+      "dimensions": [
+        [
+          416,
+          416
+        ]
+      ],
+      "annotation_sha256": "666bc1cc15266c98504793be2ba51b55e0721d8797924c2a6c13dd18338ba646"
+    },
+    "valid": {
+      "images": 103,
+      "boxes": {
+        "uv": 70,
+        "bus": 66
+      },
+      "dimensions": [
+        [
+          416,
+          416
+        ]
+      ],
+      "annotation_sha256": "eb4672fc32e8c9dd9e809eaab906b97613039404d2bb1631203c4e036ae918bf"
+    },
+    "test": {
+      "images": 109,
+      "boxes": {
+        "bus": 102,
+        "uv": 65
+      },
+      "dimensions": [
+        [
+          416,
+          416
+        ]
+      ],
+      "annotation_sha256": "ad9685b5d8a1f2e316bb40a0d5fcb3cedf6ce59580a9b582bdd09a5f6396db4c"
+    }
+  },
+  "validation_annotation_sha256": "eb4672fc32e8c9dd9e809eaab906b97613039404d2bb1631203c4e036ae918bf"
+}

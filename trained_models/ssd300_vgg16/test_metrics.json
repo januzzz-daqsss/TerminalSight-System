@@ -1,0 +1,85 @@
+{
+  "map_50_95": 0.686542521210092,
+  "map_50": 0.7965236145788906,
+  "per_class": {
+    "bus": {
+      "tp": 67,
+      "fp": 2,
+      "fn": 35,
+      "precision": 0.9710144927536232,
+      "recall": 0.6568627450980392,
+      "f1": 0.783625730994152
+    },
+    "uv": {
+      "tp": 56,
+      "fp": 6,
+      "fn": 9,
+      "precision": 0.9032258064516129,
+      "recall": 0.8615384615384616,
+      "f1": 0.8818897637795275
+    }
+  },
+  "micro": {
+    "tp": 123,
+    "fp": 8,
+    "fn": 44,
+    "precision": 0.9389312977099237,
+    "recall": 0.7365269461077845,
+    "f1": 0.825503355704698
+  },
+  "macro": {
+    "precision": 0.937120149602618,
+    "recall": 0.7592006033182503,
+    "f1": 0.8327577473868397
+  },
+  "confusion_matrix": [
+    [
+      0,
+      2,
+      1
+    ],
+    [
+      30,
+      67,
+      5
+    ],
+    [
+      9,
+      0,
+      56
+    ]
+  ],
+  "matrix_labels": [
+    "background",
+    "bus",
+    "uv"
+  ],
+  "matrix_orientation": "rows=true, columns=predicted; background/background unused",
+  "protocol": {
+    "confidence": 0.5,
+    "iou_threshold": 0.5,
+    "matching": "class-agnostic score-ordered greedy one-to-one",
+    "zero_denominator": "reported as zero; consult tp/fp/fn counts"
+  },
+  "timing": {
+    "mean_ms": 29.752066406757216,
+    "median_ms": 29.721803999564145,
+    "p95_ms": 31.276363599863544,
+    "fps": 33.6111107823046,
+    "samples": 327,
+    "warmup_calls": 10,
+    "batch_size": 1,
+    "device": "cuda",
+    "hardware": "Tesla T4",
+    "scope": "Model call including internal resize and postprocessing; excludes disk I/O, host-to-device transfer, OCR, UI."
+  },
+  "test_images": 109,
+  "test_boxes": {
+    "bus": 102,
+    "uv": 65
+  },
+  "test_annotation_sha256": "ad9685b5d8a1f2e316bb40a0d5fcb3cedf6ce59580a9b582bdd09a5f6396db4c",
+  "checkpoint_epoch": 17,
+  "torch_version": "2.11.0+cu130",
+  "torchvision_version": "0.26.0+cu130"
+}
