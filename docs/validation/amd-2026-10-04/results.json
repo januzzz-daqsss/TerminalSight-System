@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "date": "2026-06-15T15:01:22.911364",
+    "description": "Ultralytics best model trained on /content/SlotSight_Master-9/data.yaml",
+    "author": "Ultralytics",
+    "version": "8.4.67",
+    "task": "detect",
+    "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+    "docs": "https://docs.ultralytics.com",
+    "stride": "32",
+    "batch": "1",
+    "imgsz": "[512, 512]",
+    "names": "{0: 'bus', 1: 'uv'}",
+    "args": "{'data': None, 'batch': 1, 'fraction': 1.0, 'half': False, 'int8': False, 'dynamic': False, 'simplify': True, 'opset': 12, 'nms': False}",
+    "channels": "3",
+    "end2end": "False"
+  },
+  "frames": [
+    {
+      "camera": "northbound",
+      "seconds": 0,
+      "inference_ms": 15.623899998900015,
+      "detections": [
+        {
+          "label": "uv",
+          "confidence": 0.9424324631690979,
+          "bbox": [
+            769,
+            309,
+            1227,
+            701
+          ]
+        }
+      ]
+    },
+    {
+      "camera": "northbound",
+      "seconds": 5,
+      "inference_ms": 17.015299999911804,
+      "detections": [
+        {
+          "label": "uv",
+          "confidence": 0.9432227611541748,
+          "bbox": [
+            768,
+            308,
+            1228,
+            698
+          ]
+        }
+      ]
+    },
+    {
+      "camera": "northbound",
+      "seconds": 10,
+      "inference_ms": 16.124899999340414,
+      "detections": [
+        {
+          "label": "uv",
+          "confidence": 0.9379574060440063,
+          "bbox": [
+            766,
+            288,
+            1227,
+            697
+          ]
+        }
+      ]
+    },
+    {
+      "camera": "southbound",
+      "seconds": 0,
+      "inference_ms": 15.979699999661534,
+      "detections": [
+        {
+          "label": "bus",
+          "confidence": 0.8293039798736572,
+          "bbox": [
+            625,
+            146,
+            1473,
+            803
+          ]
+        }
+      ]
+    },
+    {
+      "camera": "southbound",
+      "seconds": 5,
+      "inference_ms": 15.751300001284108,
+      "detections": [
+        {
+          "label": "bus",
+          "confidence": 0.9329385757446289,
+          "bbox": [
+            607,
+            190,
+            1305,
+            789
+          ]
+        }
+      ]
+    },
+    {
+      "camera": "southbound",
+      "seconds": 10,
+      "inference_ms": 15.972700000929763,
+      "detections": [
+        {
+          "label": "bus",
+          "confidence": 0.936439037322998,
+          "bbox": [
+            612,
+            225,
+            1199,
+            757
+          ]
+        }
+      ]
+    }
+  ]
+}
