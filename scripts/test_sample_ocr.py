@@ -17,6 +17,8 @@ def main():
     args = parser.parse_args()
     import cv2
     from detector import analyze_frame
+    from detection_runtime import runtime
+    runtime.initialize()
     from occupancy import OccupancyState
     from ocr_worker import create_engine, crop_sign, read_sign
     engine = create_engine()

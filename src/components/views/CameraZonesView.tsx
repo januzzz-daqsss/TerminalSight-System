@@ -1,4 +1,5 @@
 import type { CameraHealth } from "../../notifications/model";
+import { DetectionSettings } from "../ui/DetectionSettings";
 import { useState } from "react";
 import {
     AlertTriangle,
@@ -113,6 +114,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <DetectionSettings />
                     {/* AI Bounding Box Legend */}
                     <div className="hidden lg:flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs font-semibold text-slate-600">
                         <div className="flex items-center gap-1.5">
