@@ -133,73 +133,87 @@ latest_frame_nb = None # Holds the most recent image for Northbound
 occupancy = OccupancyState()
 ocr_worker = None
 
-def run_ai_background(video_path, camera_name):
+def run_ai_background(video_path, camera_name, stop_event=None):
     global live_status, timers, latest_frame_sb, latest_frame_nb
-
+    from camera_inference import CameraInference
+    worker = CameraInference(analyze_frame)
+    cap = None
+    bays = ["Bay_1"] if camera_name == "northbound" else ["Bay_6"]
+    sessions = {}
     try:
         camera_state(camera_name, "Starting", frame=True)
         cap = cv2.VideoCapture(video_path)
-
         if not cap.isOpened():
-            camera_state(camera_name, "Disconnected")
-            print(f"❌ FATAL ERROR: Could not find or open {camera_name} video at: {video_path}")
-            return
-
-        print(f"✅ AI Background Thread for {camera_name} Started Successfully!")
-
-        frame_counter = 0
-        while True:
+            raise RuntimeError(f"Cannot open {camera_name} video: {video_path}")
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        fps = fps if 1 <= fps <= 120 else 30
+        origin = time.monotonic()
+        frame_index = 0
+        next_detection = 0
+        while stop_event is None or not stop_event.is_set():
+            # Pace sample playback against its source clock. Skip obsolete frames
+            # after a delay instead of accumulating latency or playing in slow motion.
+            target = int((time.monotonic() - origin) * fps)
+            while frame_index < target:
+                if not cap.grab():
+                    break
+                frame_index += 1
             success, frame = cap.read()
             if not success:
-                camera_state(camera_name, "Unstable")
-                time.sleep(0.1)
-                occupancy.clear(["Bay_1"] if camera_name == "northbound" else ["Bay_6"])
-                cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # Sample loop starts a fresh occupancy session
+                worker.reset()  # Discard any result from the previous sample loop.
+                occupancy.clear(bays)
+                sessions.clear()
+                for bay in bays:
+                    live_status[bay] = "AVAILABLE"
+                    timers[bay].update(is_active=False, start_time=None)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                origin, frame_index = time.monotonic(), 0
+                time.sleep(.03)
                 continue
-
+            frame_index += 1
             camera_state(camera_name, "Live", frame=True)
-            frame_counter += 1
-            # Skip frames to speed up video playback (YOLO is slow, so we drop frames to keep 1x speed visually)
-            if frame_counter % 2 != 0:
-                continue
-
-            # 1. RUN THE AI BRAIN
-            raw_frame = frame.copy()
-            current_data, assignments = analyze_frame(frame, camera_name, include_detections=True, annotate=False)
-
-            # Share session identity and the same loading clock with all displays.
-            for bay in current_data:
-                detection = assignments.get(bay)
-                session = occupancy.update(bay, detection)
-                live_status[bay] = "OCCUPIED" if session else "AVAILABLE"
-                if bay in timers:
-                    timers[bay]["is_active"] = session is not None
-                    timers[bay]["start_time"] = (time.time() - (time.monotonic() - session["started"])) if session else None
-                if detection and session and session['ocr_eligible'] and ocr_worker:
-                    try:
-                        ocr_worker.submit(bay, session["id"], raw_frame, detection)
-                    except Exception:
-                        # Sign cropping/queueing is optional and cannot stop vehicle detection.
-                        app.logger.exception("OCR submission failed; detection continues")
+            result = worker.poll()
+            if result is not None:
+                raw_frame, (current_data, assignments) = result
+                for bay in current_data:
+                    detection = assignments.get(bay)
+                    session = occupancy.update(bay, detection)
+                    sessions[bay] = session
+                    live_status[bay] = "OCCUPIED" if session else "AVAILABLE"
+                    if bay in timers:
+                        timers[bay]["is_active"] = session is not None
+                        timers[bay]["start_time"] = (time.time() - (time.monotonic() - session["started"])) if session else None
+                    if detection and session and session['ocr_eligible'] and ocr_worker:
+                        try:
+                            ocr_worker.submit(bay, session["id"], raw_frame, detection)
+                        except Exception:
+                            app.logger.exception("OCR submission failed; detection continues")
+            if time.monotonic() >= next_detection and worker.submit(frame, camera_name):
+                next_detection = time.monotonic() + .1  # Up to 10 observations/sec/camera.
+            for session in sessions.values():
                 if session and session.get('bbox') and ocr_worker and ocr_worker.state != 'Failed':
                     try:
                         draw_sign_region(frame, session, occupancy.config, held=not session['ocr_eligible'])
                     except Exception:
                         app.logger.exception("OCR region overlay failed; detection continues")
-
-            draw_slots(frame, camera_name, {bay: live_status[bay] for bay in current_data})
-            # 3. STORE THE ANNOTATED FRAME FOR THE BROWSER
-            ret, buffer = cv2.imencode('.jpg', frame)
-            if camera_name == "southbound":
-                latest_frame_sb = buffer.tobytes()
-            else:
-                latest_frame_nb = buffer.tobytes()
-
-    except Exception as e:
+            draw_slots(frame, camera_name, {bay: live_status[bay] for bay in bays})
+            # Keep full resolution for detection/OCR, reduce only the browser preview.
+            if frame.shape[1] > 960:
+                frame = cv2.resize(frame, (960, round(frame.shape[0] * 960 / frame.shape[1])))
+            ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+            if ret:
+                if camera_name == "southbound":
+                    latest_frame_sb = buffer.tobytes()
+                else:
+                    latest_frame_nb = buffer.tobytes()
+            time.sleep(max(0, min(1 / fps, origin + frame_index / fps - time.monotonic())))
+    except Exception:
         camera_state(camera_name, "Disconnected")
-        print(f"\n❌ FATAL ERROR IN AI THREAD ({camera_name}): {str(e)}")
-        import traceback
-        traceback.print_exc()
+        app.logger.exception("Camera worker failed: %s", camera_name)
+    finally:
+        worker.close()
+        if cap is not None:
+            cap.release()
 
 # AI workers are started in the main entry point, not when importing API routes.
 
@@ -256,6 +270,36 @@ def get_ocr_debug():
 @app.route('/api/status')
 def get_status():
     return jsonify({f"Bay_{bay['id']}": bay["status"].upper() for bay in occupancy.snapshot()})
+
+
+@app.route('/api/detection', methods=['GET', 'POST'])
+def detection_settings():
+    authorization = request.headers.get('Authorization', '')
+    try:
+        if not authorization.startswith('Bearer '):
+            raise BadSignature('Missing token')
+        identity = export_tokens.loads(authorization[7:], max_age=8 * 60 * 60)
+        with closing(sqlite3.connect(DB_FILE)) as conn:
+            user = conn.execute('SELECT password_hash FROM admin_users WHERE username = ?', (identity['username'],)).fetchone()
+        if not user or not secrets.compare_digest(hashlib.sha256(user[0].encode()).hexdigest(), identity['credential_version']):
+            raise BadSignature('Credentials changed')
+    except (BadSignature, KeyError, TypeError):
+        return jsonify(message='Please sign in again to change detection settings.'), 401
+    from detection_runtime import runtime
+    if request.method == 'GET':
+        return jsonify(runtime.status())
+    if os.environ.get('TERMINALSIGHT_DISABLE_AI') == '1':
+        return jsonify(message='AI is disabled on this server.'), 409
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or not isinstance(data.get('model'), str) or not isinstance(data.get('device'), str):
+        return jsonify(message='Choose an algorithm and device.'), 400
+    try:
+        return jsonify(runtime.switch(data['model'], data['device']))
+    except ValueError as error:
+        return jsonify(message=str(error)), 400
+    except Exception:
+        app.logger.exception('Detection model switch failed')
+        return jsonify(message=runtime.error or 'Unable to load model; check server logs.', status=runtime.status()), 503
 
 @app.route('/api/export/csv', methods=['GET'])
 @app.route('/api/export/occupancy-csv', methods=['GET'])
@@ -510,6 +554,8 @@ if __name__ == '__main__':
     if os.environ.get("TERMINALSIGHT_DISABLE_AI") != "1":
         import cv2
         from detector import analyze_frame, draw_slots
+        from detection_runtime import runtime
+        runtime.initialize()
         ocr_worker = OCRWorker(occupancy)
         ocr_worker.start()
         threading.Thread(target=run_ai_background, args=(r"public\sample-videos\sample-VID_20260604_133427.mp4", "southbound"), daemon=True).start()

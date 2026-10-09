@@ -8,7 +8,8 @@ import zipfile
 
 from PIL import Image
 import torch
-from scripts.train_colab_detectors import CocoVehicles, extract_dataset, find_splits, inspect_dataset
+from scripts.train_colab_detectors import (CocoVehicles, extract_dataset, find_splits, inspect_dataset,
+                                           detection_counts, summarize_counts, checkpoint_metadata)
 from scripts.repair_coco_splits import repair_dataset
 
 
@@ -52,6 +53,36 @@ class TrainingDatasetTests(unittest.TestCase):
         with patch('scripts.train_colab_detectors.random.random', return_value=0):
             _, target = dataset[0]
         self.assertEqual(target['boxes'].tolist(), [[70, 5, 100, 25], [20, 30, 40, 70]])
+
+    def test_detection_metrics_count_misclassification_duplicates_misses_and_threshold(self):
+        target = {'boxes': torch.tensor([[0., 0., 10., 10.], [20., 20., 30., 30.], [40., 40., 50., 50.]]),
+                  'labels': torch.tensor([1, 2, 2])}
+        prediction = {'boxes': torch.tensor([[0., 0., 10., 10.], [0., 0., 10., 10.],
+                                              [20., 20., 30., 30.], [40., 40., 50., 50.]]),
+                      'labels': torch.tensor([1, 1, 1, 2]), 'scores': torch.tensor([.9, .8, .7, .2])}
+        matrix = detection_counts(prediction, target)
+        self.assertEqual(matrix.tolist(), [[0, 1, 0], [0, 1, 0], [1, 1, 0]])
+        result = summarize_counts(matrix)
+        self.assertAlmostEqual(result['per_class']['bus']['precision'], 1/3)
+        self.assertEqual(result['per_class']['bus']['recall'], 1)
+        self.assertAlmostEqual(result['micro']['f1'], 1/3)
+        self.assertEqual(result['per_class']['uv']['fn'], 2)
+
+    def test_detection_metrics_empty_predictions_and_empty_ground_truth(self):
+        empty = {'boxes': torch.empty((0, 4)), 'labels': torch.empty(0, dtype=torch.int64),
+                 'scores': torch.empty(0)}
+        one = {'boxes': torch.tensor([[0., 0., 10., 10.]]), 'labels': torch.tensor([1]), 'scores': torch.tensor([.9])}
+        self.assertEqual(detection_counts(empty, one)[1, 0], 1)
+        self.assertEqual(detection_counts(one, empty)[0, 1], 1)
+        self.assertEqual(summarize_counts(detection_counts(empty, empty))['micro']['f1'], 0)
+
+    def test_resize_metadata_retains_legacy_defaults_and_records_new_experiment(self):
+        dataset = CocoVehicles(self.make_split('train'))
+        legacy = checkpoint_metadata('fasterrcnn_resnet50_fpn', dataset, 42)
+        self.assertEqual(legacy['resize'], {'min_size': 512, 'max_size': 768})
+        current = checkpoint_metadata('fasterrcnn_resnet50_fpn', dataset, 42,
+                                      {'min_size': 416, 'max_size': 416})
+        self.assertEqual(current['resize'], {'min_size': 416, 'max_size': 416})
 
     def test_duplicate_images_across_splits_are_rejected(self):
         self.make_split('train')

@@ -42,6 +42,22 @@ class OccupancyExportTests(unittest.TestCase):
         with patch('itsdangerous.timed.time.time', return_value=4102444800):
             self.assertEqual(self.export().status_code, 401)
 
+    def test_detection_settings_require_current_admin_credentials(self):
+        self.assertEqual(self.client.get('/api/detection').status_code, 401)
+        self.assertEqual(self.client.post('/api/detection', json={'model': 'yolov8', 'device': 'cpu'}).status_code, 401)
+        with patch('detection_runtime.runtime.status', return_value={'model': 'yolov8'}):
+            self.assertEqual(self.client.get('/api/detection', headers=self.headers).json['model'], 'yolov8')
+        with patch.dict(os.environ, {'TERMINALSIGHT_DISABLE_AI': '0'}):
+            self.assertEqual(self.client.post('/api/detection', headers=self.headers, json=[]).status_code, 400)
+            with patch('detection_runtime.runtime.switch', return_value={'model': 'ssd300_vgg16'}) as switch:
+                result = self.client.post('/api/detection', headers=self.headers, json={'model': 'ssd300_vgg16', 'device': 'cpu'})
+                self.assertEqual(result.status_code, 200)
+                switch.assert_called_once_with('ssd300_vgg16', 'cpu')
+        with closing(sqlite3.connect(self.api.DB_FILE)) as conn:
+            conn.execute("UPDATE admin_users SET password_hash = 'changed'")
+            conn.commit()
+        self.assertEqual(self.client.get('/api/detection', headers=self.headers).status_code, 401)
+
     def test_header_only_export(self):
         response = self.export()
         self.assertEqual(response.status_code, 200)

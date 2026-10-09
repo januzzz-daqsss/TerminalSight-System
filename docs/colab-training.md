@@ -1,5 +1,55 @@
 # Train the two additional TerminalSight detectors in Google Colab
 
+## Manuscript-aligned v18 experiment (October 3, 2026)
+
+Upload the regenerated repository notebook, not the older executed notebook from
+Downloads. Existing completed notebooks/checkpoints are preserved. The new defaults
+use a separate `v18_manuscript_<timestamp>` Drive folder, 50 epochs, v18 COCO JSON
+images at 416x416, Faster R-CNN SGD at 0.002 with internal min/max size 416,
+and SSD300-VGG16 AdamW at 0.0001 with internal size 300x300. Both use StepLR
+(8 epochs, gamma 0.2) and weight decay 0.0005. These explicit starting settings
+are not a reconstruction of unpublished manuscript hyperparameters. Both models
+use Torchvision; change the manuscript's Detectron2 description accordingly.
+Faster R-CNN's FPN may pad tensors to stride boundaries after resizing.
+
+Section 5 validates export dimensions, repairs exact duplicate/conflicting groups,
+and saves actual cleaned counts/hashes in `dataset_manifest.json`. Both repair
+flags default to True. Exclusion removes ambiguous images, not annotation errors;
+review the report. Check recording/frame/augmentation families for leakage too.
+Online flipping is disabled because the shown Roboflow exports already contain
+three outputs per training example with horizontal flipping. No additional online
+scaling augmentation is claimed. Do not multiply exported counts by three again.
+
+Section 11 saves COCO mAP plus per-class/micro/macro P/R/F1, a confusion matrix,
+and batch-1 timing. Section 11b writes `manuscript_metrics.csv` and per-model
+`confusion_matrix.png`; section 12 includes these and the dataset manifest/report.
+Default confidence=0.50 and matching IoU=0.50 are chosen before test evaluation.
+P/R/F1 use score-ordered one-to-one matching across classes, so wrong classes are
+both an FP and FN. This diagnostic protocol is separate from COCO AP's matching.
+Rows are true labels, columns predicted; background/background is not a true-negative
+count. Undefined ratios are reported as zero alongside TP/FP/FN counts. CSV metric
+columns are percentages; JSON values are fractions. mAP in CSV is overall, not per-class.
+
+Timing includes model preprocessing/inference/postprocessing, excluding disk I/O,
+CPU-to-GPU transfer and the application's OCR/tracking/UI. Ten warm-up calls precede
+three test passes with CUDA synchronization. Mean/median/p95 milliseconds and
+1000/mean_ms FPS are recorded with device, software, and test provenance. Benchmark
+on the same device for comparisons and separately on deployment hardware.
+
+416x416 is a baseline, not an established optimum. v18 (1140 images before cleanup)
+and v17 (1136) are not an isolated resolution comparison. Keep source image IDs and
+split membership fixed for a 416 versus 640 validation experiment. Stretch distorts
+aspect ratios; letterboxing is an alternative but is another experimental change.
+Do not upsample a 416 export and claim it contains original 640 detail. For OCR,
+continue cropping signage from original high-resolution camera frames.
+
+The uploaded completed v17 notebook reports cleaned counts of train=858, valid=103,
+test=109. Those counts and its 20-epoch scores must not be presented as v18 results.
+Preserve earlier runs. New resize/optimizer/augmentation settings must start a new
+experiment, not resume an old checkpoint. Legacy checkpoints remain evaluable using
+their saved resize metadata and matching cleaned dataset. Keep legacy source files
+from the original ZIP if continuing the original training recipe.
+
 ## Files you upload
 
 1. Open [Google Colab](https://colab.research.google.com/), choose **File > Upload notebook**,
@@ -40,7 +90,7 @@ return to Roboflow's dataset version and download **COCO JSON** instead.
    its `/content/drive/MyDrive/...zip` path in `DRIVE_ZIP`.
 6. Run cell 5 to extract and validate. Resolve reported annotation/image problems first.
 7. Run cell 6 to display labeled example images. Check Bus and UV boxes visually.
-8. Run cell 7 with the initial `EPOCHS = 20` and `BATCH_SIZE = 2`. These are starting
+8. Run cell 7 with the initial `EPOCHS = 50` and `BATCH_SIZE = 2`. These are starting
    settings, not a guaranteed sufficient training budget or accuracy.
 9. Run cell 8 and wait for Faster R-CNN to finish. Then run cell 9 for SSD-VGG16.
 10. Cell 10 plots training loss and validation mAP. After model choices are final,
@@ -55,16 +105,16 @@ internet; the resulting weights can later be used by the offline application.
 ## What the notebook trains
 
 - **Faster R-CNN with ResNet-50-FPN**, starting from COCO pretrained weights, with a
-  new three-class predictor. Images are internally resized with short side 512 and
-  maximum long side 768. Frozen batch normalization is preserved on offline reload.
+  new three-class predictor. Images are internally resized with short side 416 and
+  maximum long side 416. Frozen batch normalization is preserved on offline reload.
 - **SSD300 with VGG16**, starting from COCO pretrained detection weights, keeping its
   pretrained backbone/regression head and replacing its classification head. Internal
   image size is 300 x 300.
 - Training labels are `0=background`, `1=bus`, `2=uv`. Roboflow category IDs can differ
   across splits: IDs are mapped by category names, not assumed to equal model labels.
 - All model parameters are fine-tuned; Faster R-CNN's normalization statistics stay
-  frozen. Both models use SGD, horizontal flips during training, and a learning-rate
-  schedule. Validation/test images are not augmented by the loader.
+  frozen. Faster R-CNN uses SGD and SSD uses AdamW with a learning-rate schedule.
+  Extra online flips default off. Validation/test images are not augmented by the loader.
 - Best checkpoint selection uses **validation mAP@0.50:0.95**. mAP@0.50 is also reported.
   Values are fractions, so 0.80 means 80%. These metrics must not be interchanged when
   comparing against the existing YOLO mAP@0.50 result.

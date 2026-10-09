@@ -29,9 +29,17 @@ __pycache__/
 venv/
 env/
 .venv/
+.venv-amd/
+tmp/
 
 # Large Video Files (GitHub blocks files > 100MB)
 public/sample-videos/*.mp4
 
 # Local inference runtime settings
 Ultralytics/
+config/detection.local.json
+config/detection.local.tmp
+trained_models/fasterrcnn_resnet50_fpn/*.pth
+trained_models/ssd300_vgg16/*.pth
+trained_models/fasterrcnn_resnet50_fpn/AMD/
+trained_models/ssd300_vgg16/AMD/

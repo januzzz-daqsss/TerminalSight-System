@@ -1,0 +1,123 @@
+{
+  "model": "fasterrcnn_resnet50_fpn",
+  "frames": [
+    {
+      "video": "sample-VID_20260604_131402.mp4",
+      "seconds": 0,
+      "inference_ms": 677.9915999995865,
+      "overlaps": [
+        0.999999950012849
+      ],
+      "detections": [
+        {
+          "bbox": [
+            759.1109759990985,
+            310.7956959651067,
+            1220.9796612079326,
+            707.0391434889574
+          ],
+          "vehicle_type": "UV Express"
+        }
+      ]
+    },
+    {
+      "video": "sample-VID_20260604_131402.mp4",
+      "seconds": 5,
+      "inference_ms": 180.9888999996474,
+      "overlaps": [
+        0.9999996413527871
+      ],
+      "detections": [
+        {
+          "bbox": [
+            760.486591045673,
+            307.87496346693774,
+            1216.720487154447,
+            704.625135568472
+          ],
+          "vehicle_type": "UV Express"
+        }
+      ]
+    },
+    {
+      "video": "sample-VID_20260604_131402.mp4",
+      "seconds": 10,
+      "inference_ms": 131.5852999996423,
+      "overlaps": [
+        0.9999994056756225
+      ],
+      "detections": [
+        {
+          "bbox": [
+            759.9062875600961,
+            306.9052087343656,
+            1223.367215670072,
+            709.8798751831055
+          ],
+          "vehicle_type": "UV Express"
+        }
+      ]
+    },
+    {
+      "video": "sample-VID_20260604_133427.mp4",
+      "seconds": 0,
+      "inference_ms": 124.72830000115209,
+      "overlaps": [
+        0.9999997381835927
+      ],
+      "detections": [
+        {
+          "bbox": [
+            681.8637084960936,
+            140.86745188786435,
+            1488.8243689903845,
+            839.3965618426984
+          ],
+          "vehicle_type": "Bus"
+        }
+      ]
+    },
+    {
+      "video": "sample-VID_20260604_133427.mp4",
+      "seconds": 5,
+      "inference_ms": 116.68099999951664,
+      "overlaps": [
+        0.9999998375343379
+      ],
+      "detections": [
+        {
+          "bbox": [
+            674.6678748497595,
+            184.54636573791504,
+            1350.1571890024038,
+            794.1238315288838
+          ],
+          "vehicle_type": "Bus"
+        }
+      ]
+    },
+    {
+      "video": "sample-VID_20260604_133427.mp4",
+      "seconds": 10,
+      "inference_ms": 108.51060000095458,
+      "overlaps": [
+        0.9999999999999997
+      ],
+      "detections": [
+        {
+          "bbox": [
+            641.6641000600961,
+            222.7926327632024,
+            1236.1243145282451,
+            770.2332423283503
+          ],
+          "vehicle_type": "Bus"
+        }
+      ]
+    }
+  ],
+  "profile_providers": {
+    "DmlExecutionProvider": 2850,
+    "CPUExecutionProvider": 414
+  }
+}
