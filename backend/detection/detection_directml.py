@@ -2,16 +2,15 @@
 import ast
 import hashlib
 import json
-from pathlib import Path
 import cv2
 import numpy as np
 import onnxruntime as ort
-ROOT = Path(__file__).resolve().parent
+from backend.paths import MODELS_DIR
 
 
 def onnx_path(name):
     folder = 'yolov8n' if name == 'yolov8' else name
-    return ROOT / 'trained_models' / folder / 'AMD/best.onnx'
+    return MODELS_DIR / folder / 'AMD/best.onnx'
 
 
 class TorchvisionDirectMLAdapter:
@@ -62,7 +61,7 @@ class DirectMLAdapter:
         options.enable_mem_pattern = False
         options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         session = ort.InferenceSession(
-            str(ROOT / 'trained_models/yolov8n/AMD/best.onnx'),
+            str(onnx_path('yolov8')),
             sess_options=options,
             providers=[('DmlExecutionProvider', {'device_id': 0}), 'CPUExecutionProvider'],
         )

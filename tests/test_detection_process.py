@@ -4,8 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 import numpy as np
-from detection_process import ProcessAdapter
-from detection_runtime import DetectionRuntime
+from backend.detection.detection_process import ProcessAdapter
+from backend.detection.detection_runtime import DetectionRuntime
 
 
 def crash_on_frame(connection, name):
@@ -36,7 +36,7 @@ class WorkerRecoveryTests(unittest.TestCase):
                 return []
             def close(self):
                 events.append(('close', self.device))
-        with tempfile.TemporaryDirectory() as folder, patch('detection_runtime.devices', return_value=[{'id':'amd','available':True},{'id':'cpu','available':True}]), patch('detection_runtime.amd_weights_path') as path:
+        with tempfile.TemporaryDirectory() as folder, patch('backend.detection.detection_runtime.devices', return_value=[{'id':'amd','available':True},{'id':'cpu','available':True}]), patch('backend.detection.detection_runtime.amd_weights_path') as path:
             path.return_value.is_file.return_value = True
             runtime = DetectionRuntime(Path(folder)/'config.json', factory=Fake)
             runtime.switch('ssd300_vgg16', 'amd')

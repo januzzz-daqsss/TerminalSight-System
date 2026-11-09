@@ -8,17 +8,17 @@ import cv2
 import numpy as np
 import torch
 
-ROOT = Path(__file__).resolve().parent
+from backend.paths import CONFIG_DIR, MODELS_DIR
 MODELS = {'yolov8': 'YOLOv8', 'fasterrcnn_resnet50_fpn': 'Faster R-CNN (ResNet-50-FPN)',
           'ssd300_vgg16': 'SSD300 (VGG16)'}
 
 
 def weights_path(name):
-    return ROOT / 'trained_models' / ('yolov8n/best.pt' if name == 'yolov8' else f'{name}/best.pth')
+    return MODELS_DIR / ('yolov8n/best.pt' if name == 'yolov8' else f'{name}/best.pth')
 
 
 def amd_weights_path(name):
-    return ROOT / 'trained_models' / ('yolov8n' if name == 'yolov8' else name) / 'AMD/best.onnx'
+    return MODELS_DIR / ('yolov8n' if name == 'yolov8' else name) / 'AMD/best.onnx'
 
 
 def devices():
@@ -38,7 +38,7 @@ class Adapter:
     def __init__(self, name, device):
         self.name, self.device = name, device
         if device == 'amd':
-            from detection_process import ProcessAdapter
+            from backend.detection.detection_process import ProcessAdapter
             self.directml = ProcessAdapter(name)
             return
         path = weights_path(name)
@@ -48,7 +48,7 @@ class Adapter:
             from ultralytics import YOLO
             self.model = YOLO(str(path))
         else:
-            from detection_models import build_model
+            from backend.detection.detection_models import build_model
             checkpoint = torch.load(path, map_location='cpu', weights_only=True)
             meta = checkpoint['metadata']
             if meta['architecture'] != name or {int(k): v for k, v in meta['class_names'].items()} != {0: '__background__', 1: 'bus', 2: 'uv'}:
@@ -95,7 +95,7 @@ class Adapter:
 
 class DetectionRuntime:
     def __init__(self, config_path=None, factory=Adapter):
-        self.config_path = Path(config_path) if config_path else ROOT / 'config/detection.local.json'
+        self.config_path = Path(config_path) if config_path else CONFIG_DIR / 'detection.local.json'
         self.factory = factory
         self.lock = threading.RLock()
         self.change_lock = threading.Lock()

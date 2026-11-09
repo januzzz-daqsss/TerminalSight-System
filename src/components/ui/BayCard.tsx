@@ -11,8 +11,18 @@ import {
 } from "lucide-react";
 import { Bay } from "../../types";
 import { formatTimer } from "../../utils/helpers";
+import { isSampleMonitoredBay } from "../../utils/monitoringCoverage";
 
 export function BayCard({ bay, highlighted = false }: { bay: Bay; highlighted?: boolean }) {
+    if (!isSampleMonitoredBay(bay.id)) {
+        return <div id={`bay-${bay.id}`} tabIndex={-1} className={`flex min-h-40 flex-col rounded-xl border-2 border-slate-600 bg-slate-900/50 p-4 text-slate-300 ${highlighted ? "ring-4 ring-sky-500 ring-offset-4" : ""}`}>
+            <span className="text-xs font-bold tracking-widest uppercase">Bay {bay.id}</span>
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-3 text-center">
+                <p className="text-sm font-semibold">Not monitored</p>
+                <p className="text-xs text-slate-400">Outside sample-camera coverage</p>
+            </div>
+        </div>;
+    }
     const isAvailable = bay.status === "Available";
     const isOccupied = bay.status === "Occupied";
     const isOverstaying = bay.status === "Overstaying";

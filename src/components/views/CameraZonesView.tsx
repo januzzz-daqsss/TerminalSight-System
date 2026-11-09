@@ -1,5 +1,8 @@
+import { DEMO_MODE } from '../../demo';
 import type { CameraHealth } from "../../notifications/model";
+import { SAMPLE_CAMERA_BAYS } from "../../utils/monitoringCoverage";
 import { DetectionSettings } from "../ui/DetectionSettings";
+import { SampleCoverageNotice } from "../ui/SampleCoverageNotice";
 import { useState } from "react";
 import {
     AlertTriangle,
@@ -23,15 +26,15 @@ const INITIAL_CAMERAS: CameraFeed[] = [
     {
         id: 1,
         name: "Northbound Cam 1",
-        assignedBays: "Bays 1-3",
-        rtspUrl: "rtsp://192.168.1.101/stream",
+        assignedBays: "Bay 1",
+        rtspUrl: "",
         status: "LIVE",
     },
     {
         id: 2,
         name: "Southbound Cam 1",
-        assignedBays: "Bays 6-8",
-        rtspUrl: "rtsp://192.168.1.102/stream",
+        assignedBays: "Bay 6",
+        rtspUrl: "",
         status: "LIVE",
     },
 ];
@@ -51,7 +54,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
     const [configuredCameras, setCameras] = useState<CameraFeed[]>(INITIAL_CAMERAS);
     const cameras = configuredCameras.map(camera => ({ ...camera,
         status: (localOnline && health.find(item => item.id === camera.id)?.state === 'Live' ? 'LIVE' : 'OFFLINE') as CameraFeed['status'],
-        healthLabel: localOnline ? health.find(item => item.id === camera.id)?.state || 'Not connected' : 'Backend unavailable',
+        healthLabel: DEMO_MODE ? "Not connected in hosted demo" : localOnline ? health.find(item => item.id === camera.id)?.state || 'Not connected' : 'Backend unavailable',
     }));
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCamera, setEditingCamera] = useState<CameraFeed | null>(null);
@@ -76,6 +79,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
     };
 
     const handleOpenModal = (cam?: CameraFeed) => {
+        if (DEMO_MODE) return;
         if (cam) {
             setEditingCamera(cam);
             setFormData({
@@ -110,11 +114,11 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                 <div>
                     <h2 className="text-slate-800 font-bold text-lg">Camera Zones</h2>
                     <p className="text-slate-500 text-sm">
-                        Live RTSP feeds and local IP camera management
+                        {DEMO_MODE ? "Layout preview only ? no live cameras or uploaded recordings" : "Sample video previews and draft camera details"}
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <DetectionSettings />
+                    {DEMO_MODE ? <span className="text-sm text-slate-500">AI detection requires the local system</span> : <DetectionSettings />}
                     {/* AI Bounding Box Legend */}
                     <div className="hidden lg:flex items-center gap-3 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs font-semibold text-slate-600">
                         <div className="flex items-center gap-1.5">
@@ -131,18 +135,20 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${localOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"}`}>
                         <Signal size={16} className="animate-pulse" />
                         <span className="text-sm font-bold">
-                            {localOnline ? "Local Backend: Online" : "Local Backend: Unavailable"}
+                            {DEMO_MODE ? "Hosted demo: no camera connection" : localOnline ? "Local Backend: Online" : "Local Backend: Unavailable"}
                         </span>
                     </div>
                     <button
-                        onClick={() => handleOpenModal()}
+                        disabled={DEMO_MODE} onClick={() => handleOpenModal()}
                         className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
                     >
                         <Plus size={16} />
-                        Add New IP Camera
+                        Add Camera Draft
                     </button>
                 </div>
             </div>
+
+            <SampleCoverageNotice />
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
                 {cameras.map((cam) => (
@@ -155,13 +161,13 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                     >
                         {/* Video Area (Updated with AI Stream Integration) */}
                         <div id={`camera-feed-${cam.id}`} className="relative aspect-video bg-slate-900 border-b border-slate-800 flex items-center justify-center overflow-hidden group">
-                            {cam.status === "LIVE" ? (
+                            {!DEMO_MODE && cam.status === "LIVE" ? (
                                 <>
                                     {/* --- THE FLASK AI INTEGRATION --- */}
                                     {cam.id === 2 || cam.id === 1 ? (
                                         <img
                                             src={cam.id === 2 ? "/video_feed/southbound_cam1" : "/video_feed/northbound_cam1"}
-                                            alt="Live AI Stream"
+                                            alt={`${cam.name} processed sample video`}
                                             className="absolute inset-0 w-full h-full object-cover"
                                         />
                                     ) : (
@@ -174,13 +180,13 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                                     {/* --------------------------------- */}
 
                                     {/* Overlays (These now sit elegantly on top of the live video!) */}
-                                    <CameraHUD camName={cam.name + (cam.assignedBays ? ` - ${cam.assignedBays}` : "")} />
+                                    <CameraHUD camName={cam.name + (SAMPLE_CAMERA_BAYS[cam.id] ? ` - Bay ${SAMPLE_CAMERA_BAYS[cam.id]}` : " - Draft")} />
 
                                     <div className="absolute top-4 right-4 flex flex-col gap-2 items-end z-20">
                                         <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm px-2.5 py-1.5 rounded border border-white/10 shadow-lg">
-                                            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                            <span className="w-2 h-2 rounded-full bg-slate-300" />
                                             <span className="text-white text-[10px] font-bold tracking-widest uppercase">
-                                                {cam.id === 1 || cam.id === 2 ? "Sample video / AI" : "Live"}
+                                                {SAMPLE_CAMERA_BAYS[cam.id] ? "Sample video" : "Camera draft"}
                                             </span>
                                         </div>
                                         <button 
@@ -197,28 +203,25 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                                             <div className="flex items-center gap-2 text-slate-300">
                                                 <MapPin size={14} className="text-emerald-500" />
                                                 <span className="text-xs font-mono truncate max-w-[200px]">
-                                                    {cam.rtspUrl}
+                                                    {SAMPLE_CAMERA_BAYS[cam.id] ? "Recorded sample source" : "No source connected"}
                                                 </span>
-                                            </div>
-                                            <div className="hidden xl:flex text-white/50 font-mono text-[10px] bg-black/40 px-2 py-1 rounded">
-                                                REC • {new Date().toISOString().substr(11, 8)}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-emerald-400 font-mono text-[10px] bg-emerald-950/80 border border-emerald-500/30 px-2 py-1 rounded flex items-center gap-1.5 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                                AI ACTIVE
+                                                PREVIEW CONNECTED
                                             </div>
                                             <button
-                                                onClick={() => handleOpenModal(cam)}
+                                                disabled={DEMO_MODE} onClick={() => handleOpenModal(cam)}
                                                 className="bg-white/10 hover:bg-emerald-500 hover:text-white text-slate-200 text-xs font-semibold px-3 py-1 rounded transition-all duration-300 border border-white/10"
                                             >
-                                                Configure
+                                                Edit Draft
                                             </button>
                                         </div>
                                     </div>
                                 </>
-                            ) : localOnline && cam.healthLabel === "Disabled" && (cam.id === 1 || cam.id === 2) ? (
+                            ) : !DEMO_MODE && localOnline && cam.healthLabel === "Disabled" && (cam.id === 1 || cam.id === 2) ? (
                                 <>
                                     <video
                                         autoPlay loop muted playsInline controls
@@ -236,23 +239,28 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                                     <span className="text-xs font-bold uppercase tracking-widest">
                                         {cam.name}: {cam.healthLabel}
                                     </span>
-                                    <button onClick={() => handleOpenModal(cam)} className="mt-2 rounded border border-slate-500 px-3 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700">Configure</button>
+                                    <button disabled={DEMO_MODE} onClick={() => handleOpenModal(cam)} className="mt-2 rounded border border-slate-500 px-3 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700">Edit Draft</button>
                                 </div>
                             )}
+                        </div>
+                        <div className="px-4 py-3 text-xs text-slate-300">
+                            {DEMO_MODE ? "Illustrative camera panel ? no video uploaded" : SAMPLE_CAMERA_BAYS[cam.id]
+                                ? `Recorded sample video Â· Configured detection zone: Bay ${SAMPLE_CAMERA_BAYS[cam.id]}`
+                                : "Camera draft only Â· No video source or detection zone connected"}
                         </div>
                     </div>
                 ))}
 
                 {/* Empty Slot Placeholder */}
                 <button
-                    onClick={() => handleOpenModal()}
+                    disabled={DEMO_MODE} onClick={() => handleOpenModal()}
                     className="flex flex-col items-center justify-center gap-3 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-100/50 hover:border-emerald-400 hover:text-emerald-600 text-slate-500 transition-all duration-300 min-h-[350px] group shadow-sm"
                 >
                     <div className="w-14 h-14 rounded-full bg-slate-200 group-hover:bg-emerald-100 flex items-center justify-center transition-colors shadow-sm">
                         <Plus size={28} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
                     </div>
-                    <span className="font-bold text-lg">Add New IP Camera</span>
-                    <span className="text-sm font-medium opacity-70">Click to configure a new RTSP stream slot</span>
+                    <span className="font-bold text-lg">Add Camera Draft</span>
+                    <span className="text-sm font-medium opacity-70">Plan camera details; this does not connect a stream</span>
                 </button>
             </div>
 
@@ -262,7 +270,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="text-lg font-bold text-slate-800">
-                                {editingCamera ? "Configure Camera" : "Add New IP Camera"}
+                                {editingCamera ? "Edit Camera Draft" : "Add Camera Draft"}
                             </h3>
                             <button
                                 onClick={() => setIsModalOpen(false)}
@@ -273,6 +281,9 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                         </div>
 
                         <form onSubmit={handleSave} className="p-6 space-y-4">
+                            <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+                                These details are a temporary draft for this view. They reset when you leave or refresh. Saving does not connect an IP camera or change the sample videos or detection zones.
+                            </p>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                                     Camera Display Name
@@ -290,7 +301,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                    Assigned Bays
+                                    Planned Bays (draft)
                                 </label>
                                 <input
                                     type="text"
@@ -304,7 +315,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                    RTSP Stream URL
+                                    Proposed RTSP URL (draft only)
                                 </label>
                                 <input
                                     required
@@ -330,7 +341,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera }: { health
                                     type="submit"
                                     className="px-4 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors shadow-sm"
                                 >
-                                    Save Configuration
+                                    Save Draft
                                 </button>
                             </div>
                         </form>

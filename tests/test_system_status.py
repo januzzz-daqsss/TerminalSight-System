@@ -1,7 +1,7 @@
 ﻿import importlib
 import unittest
 from unittest.mock import patch
-import system_status
+from backend.state import system_status
 
 class SystemStatusTests(unittest.TestCase):
     def setUp(self):
@@ -15,12 +15,12 @@ class SystemStatusTests(unittest.TestCase):
         self.assertTrue(all(camera['state'] == 'Disabled' for camera in state['cameras']))
 
     def test_stale_feed_degrades_then_recovers(self):
-        with patch('system_status.time.time', return_value=100):
+        with patch('backend.state.system_status.time.time', return_value=100):
             system_status.camera_state('northbound', 'Live', frame=True)
         for now, expected in [(105, 'Live'), (115, 'Unstable'), (135, 'Disconnected')]:
-            with patch('system_status.time.time', return_value=now):
+            with patch('backend.state.system_status.time.time', return_value=now):
                 self.assertEqual(system_status.snapshot()['cameras'][0]['state'], expected)
-        with patch('system_status.time.time', return_value=140):
+        with patch('backend.state.system_status.time.time', return_value=140):
             system_status.camera_state('northbound', 'Live', frame=True)
             self.assertEqual(system_status.snapshot()['cameras'][0]['state'], 'Live')
 

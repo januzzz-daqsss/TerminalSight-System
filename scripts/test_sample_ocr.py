@@ -13,14 +13,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--samples', type=int, default=12)
     parser.add_argument('--interval', type=float, default=1.5)
-    parser.add_argument('--output', default='docs/ocr-evidence.local/sample-results.json')
+    parser.add_argument('--output', default='tmp/ocr-evidence/sample-results.json')
     args = parser.parse_args()
     import cv2
-    from detector import analyze_frame
-    from detection_runtime import runtime
+    from backend.detection.detector import analyze_frame
+    from backend.detection.detection_runtime import runtime
     runtime.initialize()
-    from occupancy import OccupancyState
-    from ocr_worker import create_engine, crop_sign, read_sign
+    from backend.state.occupancy import OccupancyState
+    from backend.ocr.ocr_worker import create_engine, crop_sign, read_sign
     engine = create_engine()
     records = []
     for camera, filename in [('northbound', 'sample-VID_20260604_131402.mp4'), ('southbound', 'sample-VID_20260604_133427.mp4')]:

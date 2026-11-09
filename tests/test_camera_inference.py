@@ -1,7 +1,7 @@
 import threading
 import unittest
 import numpy as np
-from camera_inference import CameraInference
+from backend.cameras.camera_inference import CameraInference
 
 
 class CameraInferenceTests(unittest.TestCase):

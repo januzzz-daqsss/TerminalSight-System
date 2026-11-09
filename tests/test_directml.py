@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from detection_directml import DirectMLAdapter
+from backend.detection.detection_directml import DirectMLAdapter
 
 
 class DirectMLPostprocessingTests(unittest.TestCase):

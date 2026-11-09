@@ -15,15 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 class OccupancyExportTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        previous = os.getcwd()
-        try:
-            os.chdir(self.temp.name)
-            spec = importlib.util.spec_from_file_location('terminal_api', ROOT / 'app.py')
-            self.api = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(self.api)
-            self.api.DB_FILE = str(Path(self.temp.name) / 'terminalsight.db')
-        finally:
-            os.chdir(previous)
+        self.addCleanup(self.temp.cleanup)
+        spec = importlib.util.spec_from_file_location('terminal_api', ROOT / 'backend' / 'server.py')
+        self.api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.api)
+        self.api.DB_FILE = Path(self.temp.name) / 'terminalsight.db'
+        self.api.init_db()
         self.client = self.api.app.test_client()
         login = self.client.post('/api/login', json={'username': 'admin', 'password': 'password123'})
         self.headers = {'Authorization': 'Bearer ' + login.json['export_token']}
@@ -45,11 +42,11 @@ class OccupancyExportTests(unittest.TestCase):
     def test_detection_settings_require_current_admin_credentials(self):
         self.assertEqual(self.client.get('/api/detection').status_code, 401)
         self.assertEqual(self.client.post('/api/detection', json={'model': 'yolov8', 'device': 'cpu'}).status_code, 401)
-        with patch('detection_runtime.runtime.status', return_value={'model': 'yolov8'}):
+        with patch('backend.detection.detection_runtime.runtime.status', return_value={'model': 'yolov8'}):
             self.assertEqual(self.client.get('/api/detection', headers=self.headers).json['model'], 'yolov8')
         with patch.dict(os.environ, {'TERMINALSIGHT_DISABLE_AI': '0'}):
             self.assertEqual(self.client.post('/api/detection', headers=self.headers, json=[]).status_code, 400)
-            with patch('detection_runtime.runtime.switch', return_value={'model': 'ssd300_vgg16'}) as switch:
+            with patch('backend.detection.detection_runtime.runtime.switch', return_value={'model': 'ssd300_vgg16'}) as switch:
                 result = self.client.post('/api/detection', headers=self.headers, json={'model': 'ssd300_vgg16', 'device': 'cpu'})
                 self.assertEqual(result.status_code, 200)
                 switch.assert_called_once_with('ssd300_vgg16', 'cpu')

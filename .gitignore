@@ -32,6 +32,9 @@ env/
 .venv-amd/
 tmp/
 
+# Local documents, diagnostics and logs organized for moving outside the app
+/TerminalSight_Archive_To_Move/
+
 # Large Video Files (GitHub blocks files > 100MB)
 public/sample-videos/*.mp4
 
@@ -43,3 +46,15 @@ trained_models/fasterrcnn_resnet50_fpn/*.pth
 trained_models/ssd300_vgg16/*.pth
 trained_models/fasterrcnn_resnet50_fpn/AMD/
 trained_models/ssd300_vgg16/AMD/
+
+# Local operational data and secrets (keep only the public demo flag)
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+.env*
+!.env.demo
+.vercel/
+trained_models/**/*.pt
+trained_models/**/*.pth
+trained_models/**/*.onnx

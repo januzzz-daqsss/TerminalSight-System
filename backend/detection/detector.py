@@ -1,6 +1,6 @@
 # detector.py
 import cv2
-from detection_runtime import runtime
+from backend.detection.detection_runtime import runtime
 from shapely.geometry import Polygon
 import numpy as np
 

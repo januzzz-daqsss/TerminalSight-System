@@ -10,8 +10,8 @@ import torch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from detection_directml import TorchvisionDirectMLAdapter
-from detection_runtime import Adapter
+from backend.detection.detection_directml import TorchvisionDirectMLAdapter
+from backend.detection.detection_runtime import Adapter
 
 
 def iou(a, b):

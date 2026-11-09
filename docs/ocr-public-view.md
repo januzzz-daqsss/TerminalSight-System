@@ -1,5 +1,15 @@
 # OCR route recognition and the two public displays
 
+## Current sample coverage
+
+Both public screens identify the source as a sample-video demonstration. Only
+Bay 1 and Bay 6 have configured detection polygons. The other eight bays display
+**Not monitored**, without routes, timers or availability claims. Driver ticker
+messages include only covered bays and stop issuing entry/departure instructions
+when updates are unavailable. Covered bays retain the existing route formatting,
+status rules and server-provided timer values. Coverage presentation is defined in
+`src/utils/monitoringCoverage.ts`; it must be updated when camera coverage expands.
+
 ## Implemented
 
 Local destination-sign OCR now accompanies the existing YOLO/Shapely sample-video
@@ -11,11 +21,11 @@ The sidebar has matching launch buttons, with Public View immediately above Publ
 ## Files created for this feature
 
 - `config/routes.json`: route IDs, labels, aliases, crop regions, sampling/matching thresholds.
-- `route_recognition.py`: normalization and temporal known-route matching.
-- `route_details.py`: dynamic extra sign labels using per-line confidence, position
+- `backend/ocr/route_recognition.py`: normalization and temporal known-route matching.
+- `backend/ocr/route_details.py`: dynamic extra sign labels using per-line confidence, position
   and repeated readings; no list of allowed secondary destinations.
-- `occupancy.py`: thread-safe session identity, route state, and shared monotonic clock.
-- `ocr_worker.py`: bounded background OCR queue and explicit local-model loading.
+- `backend/state/occupancy.py`: thread-safe session identity, route state, and shared monotonic clock.
+- `backend/ocr/ocr_worker.py`: bounded background OCR queue and explicit local-model loading.
 - `scripts/test_sample_ocr.py`: repeatable real-video OCR diagnostics.
 - `src/components/views/PublicView.tsx`: passenger display at `/public-view`.
 - `src/utils/publicDisplay.ts`: shared passenger/driver status, route and timer formatting.
@@ -25,9 +35,9 @@ The sidebar has matching launch buttons, with Public View immediately above Publ
 
 ## Existing files modified for this feature
 
-- `app.py`: starts OCR alongside detection, exposes `/api/bays`, optional authenticated
+- `backend/server.py`: starts OCR alongside detection, exposes `/api/bays`, optional authenticated
   `/api/ocr/debug`, and OCR health; existing status/timer routes use the same session clock.
-- `detector.py`: optionally returns the vehicle box/class assigned to each bay, preserving
+- `backend/detection/detector.py`: optionally returns the vehicle box/class assigned to each bay, preserving
   the original status-only interface and parking polygons.
 - `requirements.txt`: pinned local OCR dependencies.
 - `src/App.tsx`: one shared polling path for admin and both public routes; public pages
@@ -108,8 +118,8 @@ frames cannot submit OCR into the previous vehicle's route. Reacquiring the orig
 vehicle before the grace period ends preserves its timer and clears that candidate.
 Unreadable OCR alone never erases an already confirmed route during the same session.
 
-This update changes `config/routes.json`, `route_recognition.py`, `occupancy.py`,
-`ocr_worker.py`, `detector.py`, `app.py`, `scripts/test_sample_ocr.py`,
+This update changes `config/routes.json`, `backend/ocr/route_recognition.py`, `backend/state/occupancy.py`,
+`backend/ocr/ocr_worker.py`, `backend/detection/detector.py`, `backend/server.py`, `scripts/test_sample_ocr.py`,
 `tests/test_ocr.py` and this document. It adds no dependencies or database changes.
 
 An occupancy UUID binds every OCR job/result to a bay session. A confirmed 5-second
@@ -205,8 +215,10 @@ $env:PYTHONIOENCODING = 'utf-8'
 ```
 
 The sample script writes raw/normalized OCR, candidate, route confidence, session/bay,
-support count and processing time to `docs/ocr-evidence.local/sample-results.json`,
-plus the initial sign crops. This ignored local directory is for development only.
+support count and processing time to `tmp/ocr-evidence/sample-results.json`,
+plus the initial sign crops. This ignored local directory is for development only
+and is created when needed. Use `--output` to choose a different JSON destination;
+sign crops are written alongside it. Earlier results were archived separately.
 The script samples video timestamps rather than changing the running server's state.
 
 For live admin-only debugging, set `TERMINALSIGHT_OCR_DEBUG=1` before starting Flask.

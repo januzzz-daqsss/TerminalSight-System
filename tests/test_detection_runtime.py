@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 import torch
 
-from detection_runtime import Adapter, DetectionRuntime
+from backend.detection.detection_runtime import Adapter, DetectionRuntime
 
 
 class FakeAdapter:
@@ -41,7 +41,7 @@ class DetectionRuntimeTests(unittest.TestCase):
     def test_missing_amd_export_cannot_switch(self):
         with tempfile.TemporaryDirectory() as folder:
             runtime = DetectionRuntime(Path(folder) / 'settings.json', factory=FakeAdapter)
-            with patch('detection_runtime.amd_weights_path', return_value=Path(folder) / 'missing.onnx'):
+            with patch('backend.detection.detection_runtime.amd_weights_path', return_value=Path(folder) / 'missing.onnx'):
                 with self.assertRaisesRegex(ValueError, 'weights are missing'):
                     runtime.switch('ssd300_vgg16', 'amd')
 
@@ -69,7 +69,7 @@ class DetectionRuntimeTests(unittest.TestCase):
                                   {'bbox': [100., 50., 200., 100.], 'vehicle_type': 'UV Express'}])
 
     def test_parking_assignments_are_shared_across_adapters(self):
-        import detector
+        from backend.detection import detector
         with patch.object(detector.runtime, 'predict', return_value=[{'bbox': [500, 550, 1650, 900], 'vehicle_type': 'UV Express'}]):
             statuses, boxes = detector.analyze_frame(np.zeros((1080, 1920, 3), dtype=np.uint8), 'northbound', True, False)
         self.assertEqual(statuses['Bay_1'], 'OCCUPIED')

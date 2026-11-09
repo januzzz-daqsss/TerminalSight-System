@@ -2,7 +2,7 @@
 import threading
 import time
 import uuid
-from route_recognition import TemporalRoute, load_config
+from backend.ocr.route_recognition import TemporalRoute, load_config
 
 
 class OccupancyState:

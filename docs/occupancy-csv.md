@@ -1,7 +1,7 @@
 # Occupancy CSV export — local verification
 
 Run all commands from `D:\Documents\CAPSTONE\app` in PowerShell.
-The complete implementations are in `app.py`, `src/components/views/AnalyticsView.tsx`,
+The complete implementations are in `backend/server.py`, `src/components/views/AnalyticsView.tsx`,
 `src/components/views/AdminLogin.tsx`, `src/components/views/DashboardView.tsx`,
 `src/App.tsx`, and `vite.config.ts`.
 
@@ -52,7 +52,7 @@ Logout removes the browser's token; it does not revoke an already copied bearer 
 
 ## 4. Verify the browser download
 
-Sign in, open Analytics, and select **Export Turnaround Logs (CSV)**.
+Sign in, open Analytics, and select **Export Saved Occupancy Records (CSV)**.
 Check the disabled **Exporting…** state and the download confirmation, then open
 `occupancy_logs.csv`. The export includes all database history regardless of the mock
 chart date range. Empty databases correctly produce only the CSV header.
@@ -72,11 +72,29 @@ Existing Analytics charts and violation CSV remain mock data. Existing detector 
 does not yet insert occupancy records, so real history requires a separate logging
 integration. The existing email OTP feature is unrelated and still needs WAN access.
 
+The frontend labels Analytics and Violation Logs as sample data, including printed
+reports. Their client-generated CSV filenames contain `SAMPLE` and their first
+column is `Sample Violation ID`. These are illustrative exports, separate from
+the authenticated `occupancy_logs.csv` database export, whose fields are unchanged.
+Dashboard's **Export Saved Records** button also exports that database history,
+not the sample detection list or the current camera snapshot.
+
+Analytics **Print / Save Sample PDF** uses a separate two-page A4 portrait report,
+not a printout of the dashboard. Page one summarizes the selected sample chart
+period and its charts; page two lists the five illustrative violation entries.
+Those entries are independent of the selected chart period. Both pages identify
+the data as examples. Generation time uses Asia/Manila (Philippine time).
+The report uses local system fonts and vector charts, without network requests or
+additional PDF dependencies. The same report is used by Ctrl+P while Analytics is
+open. In the browser print dialog, use A4, default scale and margins, and turn off
+browser headers/footers to retain the report's own header and page numbering.
+Saving or cancelling printing leaves the dashboard and selected period intact.
+
 ## 5. Commit and push after verification
 
 ```powershell
 git diff --check
-git add app.py vite.config.ts src/App.tsx src/components/views/AdminLogin.tsx src/components/views/AnalyticsView.tsx src/components/views/DashboardView.tsx tests/test_occupancy_export.py docs/occupancy-csv.md
+git add app.py backend vite.config.ts src/App.tsx src/components/views/AdminLogin.tsx src/components/views/AnalyticsView.tsx src/components/views/DashboardView.tsx tests/test_occupancy_export.py docs/occupancy-csv.md
 git commit -m "Add authenticated occupancy CSV export to Analytics"
 git push origin main
 ```

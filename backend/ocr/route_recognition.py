@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 import re
 import unicodedata
-from route_details import DynamicRouteDetails
+from backend.ocr.route_details import DynamicRouteDetails
 
-CONFIG_PATH = Path(__file__).resolve().parent / 'config' / 'routes.json'
+from backend.paths import CONFIG_DIR
+
+CONFIG_PATH = CONFIG_DIR / 'routes.json'
 
 
 def load_config(path=CONFIG_PATH):

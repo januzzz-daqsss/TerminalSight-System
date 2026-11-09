@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "../../demo";
 import { useState } from "react";
 import {
     CheckCircle2,
@@ -29,6 +30,7 @@ const defaultSettings = {
 
 export function SettingsView() {
     const [settings, setSettings] = useState(() => {
+        if (DEMO_MODE) return { ...defaultSettings };
         const saved = localStorage.getItem("terminalsight-settings");
         return saved ? JSON.parse(saved) : defaultSettings;
     });
@@ -37,7 +39,7 @@ export function SettingsView() {
     const [isTestingPA, setIsTestingPA] = useState(false);
 
     // Account Settings State
-    const currentUser = JSON.parse(localStorage.getItem("terminalsight-user") || '{"username": "admin"}');
+    const currentUser = DEMO_MODE ? { username: "Demo visitor" } : JSON.parse(localStorage.getItem("terminalsight-user") || '{"username": "admin"}');
     const [accountStatus, setAccountStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
     const [accountMsg, setAccountMsg] = useState("");
     const [newUsername, setNewUsername] = useState(currentUser.username);
@@ -67,6 +69,7 @@ export function SettingsView() {
     const strength = evaluateStrength(newPassword);
 
     const handleAccountUpdate = () => {
+        if (DEMO_MODE) return;
         if (!oldPassword) {
             setAccountMsg("Current password is required.");
             setAccountStatus("error");
@@ -87,6 +90,7 @@ export function SettingsView() {
     };
 
     const confirmAccountUpdate = async () => {
+        if (DEMO_MODE) return;
         if (otpCode !== demoOtp) {
             setAccountMsg("Invalid OTP code.");
             setAccountStatus("error");
@@ -126,20 +130,24 @@ export function SettingsView() {
     };
 
     const handleChange = (key: string, value: any) => {
+        if (DEMO_MODE) return;
         setSettings((prev: any) => ({ ...prev, [key]: value }));
     };
 
     const handleReset = () => {
+        if (DEMO_MODE) return;
         setSettings(defaultSettings);
     };
 
     const handleSave = () => {
+        if (DEMO_MODE) return;
         localStorage.setItem("terminalsight-settings", JSON.stringify(settings));
         setSaveStatus("saved");
         setTimeout(() => setSaveStatus("idle"), 2000);
     };
 
     const handleTestPA = async () => {
+        if (DEMO_MODE) return;
         if (isTestingPA) return;
         setIsTestingPA(true);
 

@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from route_recognition import TemporalRoute, load_config, normalize
-from occupancy import OccupancyState
-from ocr_worker import OCRWorker, crop_sign, read_sign
+from backend.ocr.route_recognition import TemporalRoute, load_config, normalize
+from backend.state.occupancy import OccupancyState
+from backend.ocr.ocr_worker import OCRWorker, crop_sign, read_sign
 from types import SimpleNamespace
 
 
@@ -232,7 +232,7 @@ class OccupancySessionTests(unittest.TestCase):
         self.assertEqual(held['id'], first['id'])
 
     def test_configuration_failure_does_not_disable_occupancy(self):
-        with patch('occupancy.load_config', side_effect=ValueError('Invalid OCR config')):
+        with patch('backend.state.occupancy.load_config', side_effect=ValueError('Invalid OCR config')):
             state = OccupancyState()
         state.update('Bay_1', self.detection, now=0)
         self.assertEqual(state.snapshot(now=21)[0]['ocrState'], 'Unknown')
@@ -240,7 +240,7 @@ class OccupancySessionTests(unittest.TestCase):
 
     def test_worker_initialization_failure_is_isolated(self):
         state = OccupancyState()
-        with patch('ocr_worker.create_engine', side_effect=RuntimeError('Test missing model')):
+        with patch('backend.ocr.ocr_worker.create_engine', side_effect=RuntimeError('Test missing model')):
             worker = OCRWorker(state)
             worker.start()
             worker.thread.join(timeout=3)
@@ -251,7 +251,7 @@ class OccupancySessionTests(unittest.TestCase):
     def test_bounded_queue_and_sampling_cooldown(self):
         state = OccupancyState()
         worker = OCRWorker(state)
-        with patch('ocr_worker.crop_sign', return_value=object()) as crop:
+        with patch('backend.ocr.ocr_worker.crop_sign', return_value=object()) as crop:
             for index in range(1, 5):
                 worker.submit(f'Bay_{index}', 'session', None, self.detection)
             self.assertEqual(len(worker.pending), 2)
@@ -266,7 +266,7 @@ class SignCropTests(unittest.TestCase):
                                  boxes=[[[20, 50], [80, 50], [80, 60], [20, 60]],
                                         [[90, 60], [140, 60], [140, 70], [90, 70]],
                                         [[1, 1], [5, 1], [5, 5], [1, 5]]])
-        with patch('ocr_worker.create_engine') as factory:
+        with patch('backend.ocr.ocr_worker.create_engine') as factory:
             engine = factory.return_value
             engine.return_value = result
             text, _, lines = read_sign(engine, image, include_lines=True)

@@ -1,3 +1,4 @@
+import { DEMO_MODE } from '../demo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Bay } from '../types';
 import { cloudEvents, EventGate, initialSystem } from './model';
@@ -5,6 +6,7 @@ import type { Notice, NoticeInput, SystemStatus } from './model';
 
 const STORAGE = 'terminalsight-notifications-v1';
 function restore(): { notices: Notice[]; active: string[] } {
+    if (DEMO_MODE) return { notices: [], active: [] };
     try {
         const value = JSON.parse(sessionStorage.getItem(STORAGE) || '{}');
         return { notices: Array.isArray(value.notices) ? value.notices.slice(0, 100) : [], active: Array.isArray(value.active) ? value.active : [] };
@@ -40,7 +42,7 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
         oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
     }, []);
     useEffect(() => {
-        if (!enabled) return;
+        if (DEMO_MODE || !enabled) return;
         const unlock = () => {
             try {
                 audio.current ??= new AudioContext();
@@ -70,10 +72,11 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
         return existed;
     }, []);
     useEffect(() => {
+        if (DEMO_MODE) return;
         try { sessionStorage.setItem(STORAGE, JSON.stringify({ notices, active: [...gate.current.active] })); } catch { /* Storage is optional. */ }
     }, [notices, bays, system]);
     useEffect(() => {
-        if (!enabled || !liveDataReady) return;
+        if (DEMO_MODE || !enabled || !liveDataReady) return;
         for (const bay of bays) {
             const prefix = `overstay:bay:${bay.id}`;
             const key = `${prefix}:${bay.sessionId || 'legacy'}`;
@@ -86,7 +89,7 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
         }
     }, [bays, enabled, liveDataReady, publish, resolve]);
     useEffect(() => {
-        if (!enabled) return;
+        if (DEMO_MODE || !enabled) return;
         let cancelled = false;
         let timer: ReturnType<typeof setTimeout>;
         let controller: AbortController;
@@ -126,7 +129,7 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
         return () => { cancelled = true; controller?.abort(); clearTimeout(timer); };
     }, [enabled, publish, resolve]);
     useEffect(() => {
-        if (!enabled) return;
+        if (DEMO_MODE || !enabled) return;
         const handler = () => publish({ key: `csv:${Date.now()}`, title: 'CSV Export Ready', message: 'The occupancy CSV download has started.', priority: 'low' });
         window.addEventListener('terminalsight:csv-exported', handler);
         return () => window.removeEventListener('terminalsight:csv-exported', handler);

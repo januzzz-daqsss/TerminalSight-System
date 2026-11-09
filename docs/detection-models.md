@@ -1,5 +1,26 @@
 # Local detection algorithms
 
+## Sample sources and displayed coverage
+
+The current UI identifies the two feeds as recorded sample videos processed by
+the selected detector. Northbound Cam 1 covers Bay 1; Southbound Cam 1 covers
+Bay 6. Other bays remain visible in the terminal layout as **Not monitored**.
+Dashboard counts and driver availability messages include only those two covered
+bays; this presentation filter does not modify backend bay states or timers.
+`src/utils/monitoringCoverage.ts` records the current sample coverage and must be
+updated with `backend/detection/detector.py` when actual camera/polygon coverage changes.
+
+Camera draft fields are temporary view state. Editing a name, proposed URL or
+planned bays does not connect an IP camera, replace a sample video, save a camera
+configuration or change a detection polygon. Actual coverage labels remain tied
+to the configured sample setup. Preview connection status is not a guarantee of
+inference readiness; the AI Detection dialog reports the active detector.
+
+Dashboard's sample detection list and Analytics/Violation Logs examples are
+labelled separately from current sample-camera results and saved database records.
+
+## Algorithm selection
+
 Camera Zones > AI Detection changes the algorithm and device for both sample
 camera workers. It uses the existing administrator login token (8-hour expiry;
 password changes invalidate it). GET/POST `/api/detection` require that token.

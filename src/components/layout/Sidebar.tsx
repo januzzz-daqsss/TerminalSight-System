@@ -1,3 +1,4 @@
+import { DEMO_MODE } from '../../demo';
 import type { SystemStatus } from "../../notifications/model";
 import {
     LayoutDashboard,
@@ -54,9 +55,9 @@ export function Sidebar({
                 </div>
             </div>
 
-            <button onClick={onSystemDetails} aria-label="Open local and cloud system status" className="mx-4 mt-4 space-y-2 rounded-lg bg-slate-800 px-3 py-3 text-left text-xs hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-400">
-                <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-slate-300"><Wifi size={12} />Local System</span><span className={system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{system.local}</span></div>
-                <div className="flex items-center justify-between gap-2"><span className="text-slate-300">Cloud Sync</span><span className={system.cloud.state === 'Synced' && system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{system.local === 'Online' ? system.cloud.state : 'Unknown'}</span></div>
+            <button onClick={onSystemDetails} disabled={DEMO_MODE} aria-label="Open local and cloud system status" className="mx-4 mt-4 space-y-2 rounded-lg bg-slate-800 px-3 py-3 text-left text-xs hover:bg-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-400">
+                <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-slate-300"><Wifi size={12} />Local System</span><span className={system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{DEMO_MODE ? "Demo only" : system.local}</span></div>
+                <div className="flex items-center justify-between gap-2"><span className="text-slate-300">Cloud Sync</span><span className={system.cloud.state === 'Synced' && system.local === 'Online' ? 'text-emerald-400' : 'text-amber-400'}>{DEMO_MODE ? 'Not connected' : system.local === 'Online' ? system.cloud.state : 'Unknown'}</span></div>
             </button>
 
             {/* Navigation */}
@@ -107,7 +108,7 @@ export function Sidebar({
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-slate-500 hover:text-red-400 hover:bg-red-900/20"
                     >
                         <LogOut size={17} />
-                        <span className="flex-1 text-left">Log Out</span>
+                        <span className="flex-1 text-left">{DEMO_MODE ? "Exit Demo" : "Log Out"}</span>
                     </button>
                 </div>
             </nav>
@@ -119,7 +120,7 @@ export function Sidebar({
                         <span className="text-emerald-300 text-xs font-bold">AD</span>
                     </div>
                     <div>
-                        <p className="text-slate-200 text-xs font-semibold">Admin</p>
+                        <p className="text-slate-200 text-xs font-semibold">{DEMO_MODE ? "Demo visitor" : "Admin"}</p>
                         <p className="text-slate-500 text-[10px]">Panabo City Terminal</p>
                     </div>
                 </div>

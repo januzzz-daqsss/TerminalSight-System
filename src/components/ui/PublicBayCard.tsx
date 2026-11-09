@@ -1,8 +1,17 @@
 import { passengerStatus, publicTimer, routeLabel } from "../../utils/publicDisplay";
 import { Bay } from "../../types";
 import { Bus, Car } from "lucide-react";
+import { isSampleMonitoredBay } from "../../utils/monitoringCoverage";
 
 export function PublicBayCard({ bay }: { bay: Bay }) {
+    if (!isSampleMonitoredBay(bay.id)) {
+        return <div className="relative flex-1 h-[32vh] lg:h-[30vh] -skew-x-[15deg] border-2 border-slate-600 bg-slate-900/60 rounded-xl flex items-center justify-center overflow-hidden min-w-0">
+            <div className="skew-x-[15deg] px-2 text-center text-slate-300">
+                <h3 className="text-xl font-black lg:text-2xl">BAY {bay.id}</h3>
+                <p className="mt-4 text-sm font-bold">NOT MONITORED</p>
+            </div>
+        </div>;
+    }
     const isAvailable = bay.status === "Available";
     const isOccupied = bay.status === "Occupied";
     const isOverstaying = bay.status === "Overstaying";

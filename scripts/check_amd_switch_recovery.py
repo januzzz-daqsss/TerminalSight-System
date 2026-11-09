@@ -7,7 +7,7 @@ import time
 import cv2
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from detection_runtime import DetectionRuntime
+from backend.detection.detection_runtime import DetectionRuntime
 
 
 def main():

@@ -1,3 +1,4 @@
+import { DEMO_MODE, DEMO_DESCRIPTION, demoBays } from './demo';
 import { PublicView } from "./components/views/PublicView";
 import { useNotifications } from "./notifications/useNotifications";
 import { NotificationBanner, SystemDetails } from "./notifications/NotificationUI";
@@ -18,15 +19,16 @@ import { DashboardView } from "./components/views/DashboardView";
 
 export default function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isExploringDemo, setIsExploringDemo] = useState(false);
     const [now, setNow] = useState(new Date());
     const isPublic = ['/signage', '/public-view'].includes(window.location.pathname);
-    const [bays, setBays] = useState<Bay[]>(initialBays);
+    const [bays, setBays] = useState<Bay[]>(DEMO_MODE ? demoBays : initialBays);
     const [activeTab, setActiveTab] = useState("dashboard");
     const [liveDataReady, setLiveDataReady] = useState(false);
     const [showSystem, setShowSystem] = useState(false);
     const closeSystem = useCallback(() => setShowSystem(false), []);
     const [focusTarget, setFocusTarget] = useState<{ target: Target; nonce: number } | null>(null);
-    const notifications = useNotifications(bays, isAuthenticated && !isPublic, liveDataReady);
+    const notifications = useNotifications(bays, isAuthenticated && !isPublic && !DEMO_MODE, liveDataReady);
     const inspectNotice = (notice: Notice) => {
         notifications.markRead(notice.id);
         if (notice.target?.kind === 'system') setShowSystem(true);
@@ -53,6 +55,7 @@ export default function App() {
         let timer: ReturnType<typeof setTimeout>;
         let controller: AbortController;
         const clock = setInterval(() => setNow(new Date()), 1000);
+        if (DEMO_MODE) return () => clearInterval(clock);
         const poll = async () => {
             controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000);
@@ -80,7 +83,7 @@ export default function App() {
 
     // Text-to-Speech (TTS) PA System Logic
     useEffect(() => {
-        if (isPublic || !isAuthenticated || !liveDataReady) return;
+        if (DEMO_MODE || isPublic || !isAuthenticated || !liveDataReady) return;
 
         const savedSettings = localStorage.getItem("terminalsight-settings");
         const settings = savedSettings ? JSON.parse(savedSettings) : { paVolume: 80, language: "bisaya" };
@@ -107,25 +110,29 @@ export default function App() {
     }, [bays, liveDataReady, isPublic, isAuthenticated]);
 
     if (window.location.pathname === "/signage") {
-        return <PublicSignageView bays={bays} now={now} live={liveDataReady} />;
+        return <PublicSignageView bays={bays} now={now} live={liveDataReady || DEMO_MODE} />;
     }
 
     if (window.location.pathname === "/public-view") {
-        return <PublicView bays={bays} now={now} live={liveDataReady} />;
+        return <PublicView bays={bays} now={now} live={liveDataReady || DEMO_MODE} />;
     }
 
-    if (!isAuthenticated) {
-        return <AdminLogin onLogin={() => setIsAuthenticated(true)} />;
+    if (!isAuthenticated && !(DEMO_MODE && isExploringDemo)) {
+        return <AdminLogin
+            onLogin={() => { if (!DEMO_MODE) setIsAuthenticated(true); }}
+            onExploreDemo={DEMO_MODE ? () => setIsExploringDemo(true) : undefined}
+        />;
     }
 
     return (
         <div className="flex h-screen print:h-auto bg-slate-50 overflow-hidden print:overflow-visible font-sans">
             <Sidebar
                 system={notifications.system}
-                onSystemDetails={() => setShowSystem(true)}
+                onSystemDetails={() => { if (!DEMO_MODE) setShowSystem(true); }}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={() => {
+                    if (DEMO_MODE) { setIsExploringDemo(false); setActiveTab("dashboard"); return; }
                     sessionStorage.removeItem("terminalsight-export-token");
                     setIsAuthenticated(false);
                 }}
@@ -142,6 +149,7 @@ export default function App() {
                     inspect={inspectNotice}
                 />
 
+                {DEMO_MODE && <aside role="status" className="shrink-0 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900"><strong>Hosted demonstration.</strong> {DEMO_DESCRIPTION}</aside>}
                 {notifications.banners[0] && <div className="relative z-40 flex shrink-0 justify-center px-5 pt-3 print:hidden"><NotificationBanner key={notifications.banners[0].id} notice={notifications.banners[0]} dismiss={notifications.dismiss} inspect={inspectNotice} /></div>}
                 {showSystem && <SystemDetails system={notifications.system} close={closeSystem} testNotification={notifications.testNotification} />}
                 {/* Scrollable content */}
@@ -150,7 +158,7 @@ export default function App() {
                     {activeTab === "analytics" && <AnalyticsView />}
                     {activeTab === "camera" && <CameraZonesView health={notifications.system.cameras} localOnline={notifications.system.local === "Online"} focusedCamera={focusTarget?.target.kind === "camera" ? focusTarget.target.id : undefined} />}
                     {activeTab === "violations" && <ViolationLogsView />}
-                    {activeTab === "settings" && <SettingsView />}
+                    {activeTab === "settings" && (DEMO_MODE ? <><p className="text-sm font-semibold text-amber-800">Settings are read-only in this hosted demonstration.</p><fieldset disabled className="min-w-0"><SettingsView /></fieldset></> : <SettingsView />)}
                 </main>
             </div>
         </div>

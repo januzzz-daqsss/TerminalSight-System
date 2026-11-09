@@ -26,11 +26,12 @@ test('passenger list renders recognized, detecting, unknown and stale-data state
     const { PublicView } = await server.ssrLoadModule('/src/components/views/PublicView.tsx');
     const bays = [
         { id: 1, status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', routeDetails: ['MA-A', 'NCCC', 'SM CITY', 'BUHANGIN'], timeRemaining: 120 },
-        { id: 2, status: 'Occupied', vehicleType: 'UV Express', ocrState: 'Detecting', timeRemaining: 0 },
-        { id: 3, status: 'Overstaying', ocrState: 'Unknown', timeRemaining: -1 },
-        { id: 4, status: 'Available', route: 'Old route', routeDetails: ['Stale destination'] },
+        { id: 1, status: 'Occupied', vehicleType: 'UV Express', ocrState: 'Detecting', timeRemaining: 0 },
+        { id: 6, status: 'Overstaying', ocrState: 'Unknown', timeRemaining: -1 },
+        { id: 6, status: 'Available', route: 'Old route', routeDetails: ['Stale destination'] },
     ];
-    const html = renderToStaticMarkup(createElement(PublicView, { bays, now: new Date(0), live: false }));
+    // Render each state independently within the current sample-camera coverage.
+    const html = bays.map(bay => renderToStaticMarkup(createElement(PublicView, { bays: [bay], now: new Date(0), live: false }))).join('');
     for (const text of ['Panabo → Davao', 'Route Detecting...', 'Route Unknown', 'BOARDING', 'DEPARTING', 'DELAYED', 'AVAILABLE', 'Live updates unavailable']) assert.ok(html.includes(text), text);
     assert.ok(!html.includes('ocrDebug'));
     assert.ok(html.includes('· MA-A · NCCC · SM CITY · BUHANGIN'));
@@ -40,4 +41,45 @@ test('driver display keeps bay-card/map presentation and adds route and timer', 
     const { PublicSignageView } = await server.ssrLoadModule('/src/components/views/PublicSignageView.tsx');
     const html = renderToStaticMarkup(createElement(PublicSignageView, { bays: [{ id: 6, type: 'Southbound', status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', timeRemaining: 120 }], now: new Date(0), live: true }));
     for (const text of ['ROAD LANE', 'Panabo → Davao', '02:00', 'BOARDING']) assert.ok(html.includes(text), text);
+});
+
+test('sample coverage never presents unmonitored bays as available or counts them in summaries', async () => {
+    const { PublicView } = await server.ssrLoadModule('/src/components/views/PublicView.tsx');
+    const { PublicSignageView } = await server.ssrLoadModule('/src/components/views/PublicSignageView.tsx');
+    const { DashboardView } = await server.ssrLoadModule('/src/components/views/DashboardView.tsx');
+    const bays = Array.from({ length: 10 }, (_, index) => ({
+        id: index + 1, type: index < 5 ? 'Northbound' : 'Southbound', status: 'Available', timeRemaining: 0,
+    }));
+    bays[0] = { ...bays[0], status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', timeRemaining: 120 };
+    const before = JSON.stringify(bays);
+    const props = { bays, now: new Date(0), live: true };
+    const passenger = renderToStaticMarkup(createElement(PublicView, props));
+    const driver = renderToStaticMarkup(createElement(PublicSignageView, props));
+    const dashboard = renderToStaticMarkup(createElement(DashboardView, { bays }));
+    for (const html of [passenger, driver]) {
+        assert.equal((html.match(/NOT MONITORED/g) || []).length, 8);
+        assert.ok(html.includes('02:00'));
+        assert.ok(html.includes('Panabo → Davao'));
+        assert.ok(html.includes('Sample-video demonstration.'));
+    }
+    assert.equal((dashboard.match(/>Not monitored</g) || []).length, 8);
+    assert.match(dashboard, /Available Slots<\/span><span[^>]*>1<\/span>/);
+    assert.match(dashboard, /Occupied Slots<\/span><span[^>]*>1<\/span>/);
+    assert.ok(dashboard.includes('Sample Detections'));
+    assert.ok(!dashboard.includes('YOLOv8 Live'));
+    assert.ok(driver.includes('BAY 6 IS OPEN'));
+    for (const id of [2, 3, 4, 5, 7, 8, 9, 10]) assert.ok(!driver.includes(`BAY ${id} IS OPEN`));
+    assert.equal(JSON.stringify(bays), before, 'presentation must not mutate backend snapshots');
+});
+
+test('disconnected sample signage does not issue instructions from retained data', async () => {
+    const { PublicSignageView } = await server.ssrLoadModule('/src/components/views/PublicSignageView.tsx');
+    const bays = [
+        { id: 1, type: 'Northbound', status: 'Available', timeRemaining: 0 },
+        { id: 6, type: 'Southbound', status: 'Overstaying', timeRemaining: -10 },
+    ];
+    const html = renderToStaticMarkup(createElement(PublicSignageView, { bays, now: new Date(0), live: false }));
+    assert.ok(html.includes('Bay information is not current.'));
+    assert.ok(!html.includes('IS OPEN FOR'));
+    assert.ok(!html.includes('PLEASE DEPART IMMEDIATELY'));
 });

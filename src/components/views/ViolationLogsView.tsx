@@ -16,7 +16,7 @@ import {
     ArrowDown,
 } from "lucide-react";
 
-// Component for viewing and managing overstay violations
+// Demonstration violation history; these entries are not recorded terminal events.
 
 const BASE_MOCK_VIOLATIONS = [
     {
@@ -193,13 +193,13 @@ export function ViolationLogsView() {
         if (filteredLogs.length === 0) return;
 
         const headers = [
-            "Violation ID",
+            "Sample Violation ID",
             "Timestamp",
             "Slot ID",
             "Vehicle Type",
             "Time Limit",
             "Overstay Duration",
-            "Action Taken",
+            "Example Action",
         ];
         const csvContent = [
             headers.join(","),
@@ -214,7 +214,7 @@ export function ViolationLogsView() {
         const link = document.createElement("a");
         const dateStr = new Date().toISOString().split("T")[0];
         link.href = url;
-        link.setAttribute("download", `TerminalSight_ViolationLogs_${dateStr}.csv`);
+        link.setAttribute("download", `TerminalSight_SAMPLE_ViolationLogs_${dateStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -227,10 +227,9 @@ export function ViolationLogsView() {
             <div className="p-5 border-b border-slate-200 space-y-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-slate-800 font-bold text-lg">Violation Logs</h2>
+                        <h2 className="text-slate-800 font-bold text-lg">Violation Logs · Sample Data</h2>
                         <p className="text-slate-500 text-sm">
-                            Historical record of all overstaying vehicles and automated
-                            actions
+                            Demonstration of violation history and filtering
                         </p>
                     </div>
                     <button
@@ -238,8 +237,13 @@ export function ViolationLogsView() {
                         className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg text-sm font-bold transition-colors border border-emerald-100"
                     >
                         <Download size={16} />
-                        Export to CSV
+                        Export Sample CSV
                     </button>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:break-inside-avoid">
+                    <p className="font-semibold text-slate-800">Sample data — demonstration only</p>
+                    <p>These entries and CSV downloads are examples, not recorded terminal events. Listed fines, alerts and resolutions are sample actions; this table does not confirm that they occurred.</p>
                 </div>
 
                 {/* Filters */}
@@ -299,7 +303,7 @@ export function ViolationLogsView() {
                                 { key: "vehicle", label: "Vehicle Type" },
                                 { key: "limit", label: "Time Limit" },
                                 { key: "overstay", label: "Overstay Duration" },
-                                { key: "action", label: "Action Taken" },
+                                { key: "action", label: "Example Action" },
                             ].map((col) => (
                                 <th 
                                     key={col.key}
@@ -397,7 +401,7 @@ export function ViolationLogsView() {
                         -{Math.min(currentPage * itemsPerPage, filteredLogs.length)}
                     </strong>{" "}
                     of <strong className="text-slate-700">{filteredLogs.length}</strong>{" "}
-                    entries
+                    sample entries
                 </span>
                 <div className="flex items-center gap-2">
                     <button

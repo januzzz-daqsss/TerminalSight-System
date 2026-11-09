@@ -4,7 +4,7 @@ import multiprocessing
 
 def _worker(connection, name):
     try:
-        from detection_directml import DirectMLAdapter, TorchvisionDirectMLAdapter
+        from backend.detection.detection_directml import DirectMLAdapter, TorchvisionDirectMLAdapter
         adapter = DirectMLAdapter() if name == 'yolov8' else TorchvisionDirectMLAdapter(name)
         connection.send(('ok', None))
         while True:

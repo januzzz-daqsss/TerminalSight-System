@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { DEMO_MODE } from "../../demo";
 import { User, Lock, Loader2, MonitorSmartphone, Eye, EyeOff } from "lucide-react";
 
 // Secure entry point for administrators
 // Secure entry point for the dashboard connected to the SQLite backend.
 
-export function AdminLogin({ onLogin }: { onLogin: () => void }) {
+export function AdminLogin({ onLogin, onExploreDemo }: { onLogin: () => void; onExploreDemo?: () => void }) {
     const [view, setView] = useState<"login" | "request_otp" | "reset_password">("login");
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -40,6 +41,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (DEMO_MODE) return;
         setError("");
         setIsLoading(true);
 
@@ -70,6 +72,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
     const handleRequestOTP = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (DEMO_MODE) return;
         setError("");
         setSuccessMsg("");
         setIsLoading(true);
@@ -97,6 +100,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (DEMO_MODE) return;
         setError("");
         setSuccessMsg("");
         
@@ -160,7 +164,25 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                     </div>
                 )}
 
-                {view === "login" && (
+                {DEMO_MODE && (
+                    <section aria-label="Explore the read-only demonstration" className="space-y-5">
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">
+                            <h2 className="font-bold text-slate-800">Hosted demonstration</h2>
+                            <p className="mt-2">Explore TerminalSight using clearly labeled sample data. No account is needed. This read-only preview has no live camera, database or terminal connection.</p>
+                            <p className="mt-2">Administrator sign-in is available only on the local terminal system.</p>
+                        </div>
+                        <button type="button" onClick={onExploreDemo} disabled={!onExploreDemo}
+                            className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md transition-colors hover:from-emerald-500 hover:to-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                            Explore Demo
+                        </button>
+                        <div className="flex justify-center gap-4 text-xs font-semibold text-emerald-700">
+                            <a href="/public-view" className="underline">Passenger display</a>
+                            <a href="/signage" className="underline">Driver display</a>
+                        </div>
+                    </section>
+                )}
+
+                {!DEMO_MODE && view === "login" && (
                     <form className="space-y-5" onSubmit={handleLogin}>
                         <div>
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -226,7 +248,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                 </form>
                 )}
 
-                {view === "request_otp" && (
+                {!DEMO_MODE && view === "request_otp" && (
                     <form className="space-y-5" onSubmit={handleRequestOTP}>
                         <div>
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -253,7 +275,7 @@ export function AdminLogin({ onLogin }: { onLogin: () => void }) {
                     </form>
                 )}
 
-                {view === "reset_password" && (
+                {!DEMO_MODE && view === "reset_password" && (
                     <form className="space-y-5" onSubmit={handleResetPassword}>
                         <div>
                             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">

@@ -1,26 +1,30 @@
+import { DEMO_MODE } from '../../demo';
 import { Bus, Car, ShieldAlert, CheckCircle2, Activity, Download } from "lucide-react";
 import { Bay } from "../../types";
 import { DETECTIONS } from "../../mockData";
 import { formatTimer } from "../../utils/helpers";
 import { BayCard } from "../ui/BayCard";
+import { SampleCoverageNotice } from "../ui/SampleCoverageNotice";
+import { isSampleMonitoredBay } from "../../utils/monitoringCoverage";
 
-// Live detection event feed
+// Demonstration entries; these are not a recorded detection history.
 
 export function DetectionFeed() {
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-slate-400" />
                     <h2 className="text-slate-800 font-semibold text-sm">
-                        Recent Detections
+                        Sample Detections
                     </h2>
                 </div>
-                <span className="text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full">
-                    YOLOv8 Live
+                <span className="text-[10px] text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded-full">
+                    Sample data
                 </span>
             </div>
 
+            <p className="px-5 py-3 text-xs text-slate-500 border-b border-slate-100">Illustrative entries, separate from the current camera results.</p>
             <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
                 {DETECTIONS.map((d) => (
                     <div
@@ -191,7 +195,9 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
 }
 
 export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: number }) {
+    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay.id));
     const handleExportCSV = async () => {
+        if (DEMO_MODE) return;
         try {
             const response = await fetch("/api/export/occupancy-csv", {
                 headers: { Authorization: `Bearer ${sessionStorage.getItem("terminalsight-export-token") || ""}` },
@@ -219,8 +225,12 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
 
     return (
         <div className="flex flex-col gap-5">
+            <SampleCoverageNotice />
             {/* Stats bar */}
-            <StatsBar bays={bays} />
+            <div className="space-y-2">
+                <p className="text-sm font-semibold text-slate-600">Monitored bays only · Bay 1 and Bay 6</p>
+                <StatsBar bays={monitoredBays} />
+            </div>
 
             {/* Main 2/3 + 1/3 split */}
             <div className="flex gap-5 min-h-0">
@@ -235,17 +245,19 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
                                     2D Spatial Terminal Map
                                 </h2>
                                 <p className="text-slate-400 text-xs font-medium mt-1">
-                                    Real-time occupancy and automated detection zones
+                                    {DEMO_MODE ? "Illustrative snapshot ? not live camera results" : "Sample-camera results for Bay 1 and Bay 6"}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
                                     type="button"
                                     onClick={handleExportCSV}
+                                    disabled={DEMO_MODE}
+                                    title={DEMO_MODE ? "Saved records require the local system" : undefined}
                                     className="flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-xs font-bold text-emerald-300 transition-colors hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                                 >
                                     <Download size={15} />
-                                    Export to CSV
+                                    Export Saved Records
                                 </button>
                                 <div className="flex items-center gap-5 text-xs font-bold text-slate-300 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-700">
                                 <span className="flex items-center gap-2">
@@ -263,6 +275,7 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
                                 </div>
                             </div>
                         </div>
+                        <p className="text-xs text-slate-400">CSV contains saved occupancy records only. Recent camera detections may not appear in this export.</p>
                         {/* Northbound Terminal — Bays 1–5 */}
                         <div>
                             <div className="flex items-center gap-2 mb-3">
@@ -316,7 +329,7 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
 
                 {/* 1/3 — Feed panel */}
                 <div className="w-80 flex-shrink-0 flex flex-col gap-4">
-                    <ViolationsPanel bays={bays} />
+                    <ViolationsPanel bays={monitoredBays} />
                     <DetectionFeed />
                 </div>
             </div>

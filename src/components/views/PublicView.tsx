@@ -2,6 +2,8 @@
 import { Bus, Users, Clock } from 'lucide-react';
 import { formatClock, formatDate } from '../../utils/helpers';
 import { passengerStatus, publicStatusClasses, publicTimer, routeLabel } from '../../utils/publicDisplay';
+import { isSampleMonitoredBay } from '../../utils/monitoringCoverage';
+import { SampleCoverageNotice } from '../ui/SampleCoverageNotice';
 
 export function PublicView({ bays, now, live }: { bays: Bay[]; now: Date; live: boolean }) {
     return <div className="flex min-h-screen flex-col bg-slate-950 font-sans text-white">
@@ -12,6 +14,7 @@ export function PublicView({ bays, now, live }: { bays: Bay[]; now: Date; live: 
             </div>
             <div className="text-right"><p className="font-mono text-3xl font-bold xl:text-4xl">{formatClock(now)}</p><p className="mt-1 text-sm text-slate-400 xl:text-lg">{formatDate(now)}</p></div>
         </header>
+        <div className="px-6 pt-3 xl:px-10"><SampleCoverageNotice dark /></div>
         {!live && <div role="status" className="bg-amber-400/15 px-8 py-3 text-center font-semibold text-amber-200">Live updates unavailable. Please confirm bay information with terminal staff.</div>}
         <main className="flex-1 overflow-x-auto px-6 py-4 xl:px-10">
             <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-left">
@@ -19,6 +22,12 @@ export function PublicView({ bays, now, live }: { bays: Bay[]; now: Date; live: 
                     <th className="px-5 pb-2">Bay</th><th className="px-5 pb-2">Route / Destination</th><th className="px-5 pb-2">Vehicle</th><th className="px-5 pb-2">Status</th><th className="px-5 pb-2 text-right">Time</th>
                 </tr></thead>
                 <tbody>{bays.map(bay => {
+                    if (!isSampleMonitoredBay(bay.id)) return <tr key={bay.id} className="h-[6.5vh] bg-slate-900 text-slate-400">
+                        <td className="rounded-l-xl border-l-4 border-slate-600 px-5 py-3 text-2xl font-black xl:text-3xl">{String(bay.id).padStart(2, '0')}</td>
+                        <td className="px-5 py-3 text-lg" colSpan={2}>Outside sample-camera coverage</td>
+                        <td className="px-5 py-3 text-base font-bold xl:text-xl">NOT MONITORED</td>
+                        <td className="rounded-r-xl px-5 py-3 text-right text-2xl">—</td>
+                    </tr>;
                     const status = passengerStatus(bay);
                     return <tr key={bay.id} className="h-[6.5vh] bg-slate-900">
                         <td className="rounded-l-xl border-l-4 border-emerald-600 px-5 py-3 text-2xl font-black xl:text-3xl">{String(bay.id).padStart(2, '0')}</td>

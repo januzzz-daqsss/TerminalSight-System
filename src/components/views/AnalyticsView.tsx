@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { DEMO_MODE } from '../../demo';
+import { useEffect, useState } from "react";
+import { createPortal, flushSync } from "react-dom";
+import { AnalyticsPrintReport } from "../reports/AnalyticsPrintReport";
 import {
     Bus,
     Car,
@@ -23,8 +26,7 @@ import {
     Legend,
 } from "recharts";
 
-// Historical data and trends visualization
-// Visualizes terminal performance metrics using Recharts.
+// Demonstration metrics and trends; saved occupancy records are exported separately.
 
 const MOCK_PEAK_DATA = [
     { time: "6:00 AM", volume: 12 },
@@ -178,9 +180,28 @@ export function AnalyticsView() {
     const [isExporting, setIsExporting] = useState(false);
     const [exportError, setExportError] = useState("");
     const [exportStatus, setExportStatus] = useState("");
+    const [reportGeneratedAt, setReportGeneratedAt] = useState(() => new Date());
+
+    useEffect(() => {
+        const originalTitle = document.title;
+        document.body.classList.add("analytics-report-print-active");
+        const prepareReport = () => {
+            flushSync(() => setReportGeneratedAt(new Date()));
+            document.title = `TerminalSight_SAMPLE_Analytics_${dateRange.replace(/ /g, "_")}`;
+        };
+        const restoreTitle = () => { document.title = originalTitle; };
+        window.addEventListener("beforeprint", prepareReport);
+        window.addEventListener("afterprint", restoreTitle);
+        return () => {
+            document.body.classList.remove("analytics-report-print-active");
+            window.removeEventListener("beforeprint", prepareReport);
+            window.removeEventListener("afterprint", restoreTitle);
+            restoreTitle();
+        };
+    }, [dateRange]);
 
     const handleExportOccupancy = async () => {
-        if (isExporting) return;
+        if (DEMO_MODE || isExporting) return;
         setIsExporting(true);
         setExportError("");
         setExportStatus("");
@@ -221,7 +242,7 @@ export function AnalyticsView() {
 
     const handleExportCSV = () => {
         const headers = [
-            "Violation ID",
+            "Sample Violation ID",
             "Date",
             "Time",
             "Slot ID",
@@ -241,34 +262,35 @@ export function AnalyticsView() {
         const link = document.createElement("a");
         const dateStr = new Date().toISOString().split("T")[0];
         link.href = url;
-        link.setAttribute("download", `Analytics_ViolationLogs_${dateStr}.csv`);
+        link.setAttribute("download", `TerminalSight_SAMPLE_Analytics_ViolationLogs_${dateStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
 
-    return (
+    return (<>
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-slate-800 font-bold text-lg">
-                        Analytics Dashboard
+                        Analytics Dashboard · Sample Data
                     </h2>
                     <p className="text-slate-500 text-sm">
-                        Terminal performance and historical data
+                        Demonstration of charts and reporting
                     </p>
                 </div>
                 <div className="flex items-center gap-2 print:hidden">
                     <div className="relative">
                         <select
+                            aria-label="Sample chart period"
                             value={dateRange}
                             onChange={(e) => setDateRange(e.target.value as any)}
                             className="appearance-none flex items-center gap-2 bg-white border border-slate-200 text-slate-600 pl-9 pr-8 py-1.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                         >
-                            <option value="Today">Today</option>
-                            <option value="Last 7 Days">Last 7 Days</option>
-                            <option value="This Month">This Month</option>
+                            <option value="Today">Sample: Today</option>
+                            <option value="Last 7 Days">Sample: Last 7 Days</option>
+                            <option value="This Month">Sample: This Month</option>
                         </select>
                         <Calendar
                             size={16}
@@ -278,17 +300,22 @@ export function AnalyticsView() {
                 </div>
             </div>
 
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 print:break-inside-avoid">
+                <p className="font-semibold text-slate-800">Sample data — demonstration only</p>
+                <p>All statistics, charts, comparisons and violation entries on this page are examples, not recorded terminal activity. The period selector changes the sample chart set only.</p>
+            </div>
+
             <div className="flex flex-wrap items-center gap-3 print:hidden">
                 <button
                     onClick={handleExportOccupancy}
-                    disabled={isExporting}
+                    disabled={DEMO_MODE || isExporting}
                     aria-busy={isExporting}
                     className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-600"
                 >
                     {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                    {isExporting ? "Exporting?" : "Export Turnaround Logs (CSV)"}
+                    {isExporting ? "Exporting..." : "Export Saved Occupancy Records (CSV)"}
                 </button>
-                <span className="text-xs text-slate-500">All recorded occupancy history, regardless of chart date range.</span>
+                <span className="text-xs text-slate-500">Exports saved occupancy records, separate from the sample charts and selected period. Recent camera detections may not appear; this is not a complete terminal history.</span>
                 {exportError && <p role="alert" className="w-full text-sm text-red-600">{exportError}</p>}
                 <p role="status" className="w-full text-sm text-emerald-700">{exportStatus}</p>
             </div>
@@ -299,7 +326,7 @@ export function AnalyticsView() {
                     <div className="flex items-center gap-2 text-emerald-600 mb-1">
                         <Clock size={18} />
                         <span className="text-sm font-semibold text-slate-600">
-                            Avg Turnaround Time
+                            Sample Avg Turnaround Time
                         </span>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -326,7 +353,7 @@ export function AnalyticsView() {
                     <div className="flex items-center gap-2 text-emerald-600 mb-1">
                         <Activity size={18} />
                         <span className="text-sm font-semibold text-slate-600">
-                            Daily Slot Utilization
+                            Sample Daily Slot Utilization
                         </span>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -353,7 +380,7 @@ export function AnalyticsView() {
                     <div className="flex items-center gap-2 text-red-600 mb-1">
                         <ShieldAlert size={18} />
                         <span className="text-sm font-semibold text-slate-600">
-                            Total Violations {dateRange}
+                            Sample Violations · {dateRange}
                         </span>
                     </div>
                     <div className="flex items-baseline gap-2">
@@ -383,7 +410,7 @@ export function AnalyticsView() {
             <div className="grid grid-cols-2 gap-5 print:flex print:flex-col print:gap-8">
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print:break-inside-avoid overflow-hidden">
                     <h3 className="text-sm font-bold text-slate-800 mb-4">
-                        Peak Congestion Hours
+                        Sample Vehicle Volume by Time
                     </h3>
                     <div className="relative w-full h-64 print:h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -430,10 +457,10 @@ export function AnalyticsView() {
                 <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm print:break-inside-avoid overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-bold text-slate-800">
-                            Avg Loading Duration vs Limit
+                            Sample Avg Loading Duration vs Limit
                         </h3>
                         <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-200">
-                            15m Limit
+                            Example 15m Limit
                         </span>
                     </div>
                     <div className="relative w-full h-64 print:h-64">
@@ -509,7 +536,7 @@ export function AnalyticsView() {
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col print:break-inside-avoid">
                 <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
                     <h3 className="text-sm font-bold text-slate-800">
-                        Recent Violation Export Logs
+                        Sample Violation Entries
                     </h3>
                     <div className="relative print:hidden">
                         <button
@@ -517,7 +544,7 @@ export function AnalyticsView() {
                             className="flex items-center gap-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                         >
                             <Download size={14} />
-                            Export CSV/PDF
+                            Export Sample CSV/PDF
                         </button>
                         {showExportMenu && (
                             <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 overflow-hidden z-10">
@@ -528,16 +555,17 @@ export function AnalyticsView() {
                                     }}
                                     className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                                 >
-                                    Download as CSV
+                                    Download Sample CSV
                                 </button>
                                 <button
                                     onClick={() => {
                                         setShowExportMenu(false);
-                                        setTimeout(() => window.print(), 100);
+                                        window.print();
                                     }}
                                     className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 border-t border-slate-100"
                                 >
-                                    Save as PDF
+                                    Print / Save Sample PDF
+                                    <span className="mt-1 block text-[10px] font-normal text-slate-500">A4 portrait report · 2 pages</span>
                                 </button>
                             </div>
                         )}
@@ -596,6 +624,10 @@ export function AnalyticsView() {
                 </div>
             </div>
         </div>
-    );
+        {typeof document !== "undefined" && createPortal(
+            <AnalyticsPrintReport period={dateRange} data={currentData} violations={MOCK_VIOLATION_LOGS} generatedAt={reportGeneratedAt} />,
+            document.body,
+        )}
+    </>);
 }
 

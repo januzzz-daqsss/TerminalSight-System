@@ -1,28 +1,33 @@
+import { DEMO_MODE } from '../../demo';
 import { Bay } from "../../types";
 import { formatDate, formatClock } from "../../utils/helpers";
 import { Bus } from "lucide-react";
 import { PublicBayCard } from "../ui/PublicBayCard";
+import { isSampleMonitoredBay } from "../../utils/monitoringCoverage";
+import { SampleCoverageNotice } from "../ui/SampleCoverageNotice";
 
 // Displays public-facing slot status on external terminal monitors
 // Dedicated full-screen view for the external terminal display monitors.
 
 export function PublicSignageView({ bays, now, live }: { bays: Bay[]; now: Date; live: boolean }) {
-    const overstayingMsgs = bays
+    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay.id));
+    const overstayingMsgs = monitoredBays
         .filter((b) => b.status === "Overstaying")
         .map(
             (b) =>
                 `⚠️ ATTENTION: BAY ${b.id} ${b.vehicleType?.toUpperCase() || "VEHICLE"} PLEASE DEPART IMMEDIATELY.`,
         );
 
-    const availableMsgs = bays
+    const availableMsgs = monitoredBays
         .filter((b) => b.status === "Available")
         .map((b) => `🟢 BAY ${b.id} IS OPEN FOR ${b.type.toUpperCase()} ENTRY.`);
 
     const allMsgs = [...overstayingMsgs, ...availableMsgs];
-    const tickerText =
-        allMsgs.length > 0
+    const tickerText = DEMO_MODE ? "HOSTED DEMONSTRATION ? ILLUSTRATIVE BAY INFORMATION ONLY. NOT FOR BOARDING OR DRIVER INSTRUCTIONS." : !live
+        ? "SAMPLE DISPLAY: Updates unavailable. Bay information is not current."
+        : allMsgs.length > 0
             ? allMsgs.join("  •  ")
-            : "⏱️ ALL BAYS CURRENTLY OCCUPIED. PLEASE WAIT FOR AN OPENING.";
+            : "⏱️ NO AVAILABLE BAY IN THE MONITORED SAMPLE AREA.";
 
     return (
         <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans">
@@ -37,7 +42,7 @@ export function PublicSignageView({ bays, now, live }: { bays: Bay[]; now: Date;
                             PANABO CITY BUS TERMINAL
                         </h1>
                         <p className="text-emerald-400 font-bold text-xl tracking-widest uppercase mt-1">
-                            Live Bay Status
+                            Sample Bay Status
                         </p>
                     </div>
                 </div>
@@ -51,6 +56,7 @@ export function PublicSignageView({ bays, now, live }: { bays: Bay[]; now: Date;
                 </div>
             </div>
 
+            <div className="shrink-0 px-6 pt-3"><SampleCoverageNotice dark /></div>
             {!live && <div role="status" className="bg-amber-500/20 px-6 py-2 text-center font-bold text-amber-200">Live updates unavailable. Check with terminal staff.</div>}
 
             {/* Main Content Area */}
