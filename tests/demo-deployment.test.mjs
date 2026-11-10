@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 let server, demo, App;
 before(async () => {
-    globalThis.window = { location: { pathname: '/' } };
+    globalThis.window = { location: { pathname: '/', href: 'https://example.test/' } };
     globalThis.localStorage = { getItem: () => { throw new Error('Demo must not read operational storage'); }, setItem: () => { throw new Error('Demo must not write storage'); } };
     globalThis.sessionStorage = globalThis.localStorage;
     server = await createServer({ mode: 'demo', server: { middlewareMode: true, ws: false }, appType: 'custom' });
@@ -27,7 +27,7 @@ test('hosted entry offers Explore Demo without an administrator form', () => {
     assert.ok(demo.DEMO_MODE);
     assert.ok(html.includes('Explore Demo'));
     assert.ok(html.includes('read-only preview'));
-    assert.ok(html.includes('Administrator sign-in is available only on the local terminal system'));
+    assert.ok(html.includes('Local terminal administration remains available on the local system'));
     assert.ok(!html.includes('<form') && !html.includes('<input'));
     assert.ok(!html.includes('2D Spatial Terminal Map'));
 });
@@ -78,14 +78,25 @@ test('analytics, violation examples and read-only settings render', async () => 
 test('demo excludes public assets; normal builds retain local mode; SPA routes configured', async () => {
     const config = await resolveConfig({ mode: 'demo' }, 'build');
     assert.equal(config.publicDir, '');
+    assert.equal(config.server.proxy, undefined);
+    assert.equal(config.preview.proxy, undefined);
     const local = await resolveConfig({ mode: 'production' }, 'build');
     assert.notEqual(local.env.VITE_DEMO_MODE, 'true');
     assert.ok(local.publicDir.endsWith('public'));
+    const apiProxy = '^/api/(?!auth(?:/|$))';
+    assert.equal(local.server.proxy[apiProxy], 'http://127.0.0.1:5000');
+    assert.equal(local.preview.proxy[apiProxy], 'http://127.0.0.1:5000');
+    assert.ok(new RegExp(apiProxy).test('/api/login'));
+    assert.ok(new RegExp(apiProxy).test('/api/bays'));
+    assert.ok(!new RegExp(apiProxy).test('/api/auth/authorize'));
     const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'));
     assert.equal(vercel.framework, 'vite');
     assert.equal(vercel.outputDirectory, 'dist');
     assert.equal(vercel.buildCommand, 'npm run build:demo');
-    assert.deepEqual(vercel.rewrites, [{ source: '/(.*)', destination: '/index.html' }]);
+    assert.deepEqual(vercel.rewrites, [{ source: '/((?!api(?:/|$)).*)', destination: '/index.html' }]);
+    const spaRoute = new RegExp(`^${vercel.rewrites[0].source}$`);
+    for (const path of ['/', '/public-view', '/signage', '/admin', '/auth/callback']) assert.ok(spaRoute.test(path));
+    for (const path of ['/api', '/api/auth/authorize', '/api/login']) assert.ok(!spaRoute.test(path));
 });
 
 test('normal local build retains administrator login without demo access', async () => {
@@ -98,4 +109,29 @@ test('normal local build retains administrator login without demo access', async
         assert.ok(html.includes('Forgot password?'));
         assert.ok(!html.includes('Explore Demo'));
     } finally { await localServer.close(); }
+});
+
+
+test('hosted administrator routes require authorization while demo remains anonymous', () => {
+    for (const pathname of ['/admin', '/admin/settings', '/auth/callback']) {
+        window.location.pathname = pathname;
+        window.location.href = `https://example.test${pathname}`;
+        const html = renderToStaticMarkup(createElement(App));
+        assert.ok(!html.includes('2D Spatial Terminal Map'));
+        assert.ok(html.includes('Explore Demo'));
+        assert.ok(!html.includes('terminalsight-export-token'));
+    }
+    window.location.pathname = '/';
+    window.location.href = 'https://example.test/';
+    const html = renderToStaticMarkup(createElement(App));
+    assert.ok(html.includes('href="/admin"'));
+    assert.ok(html.includes('No account is needed'));
+});
+
+test('interrupted setup has a credential-free recovery restart route', () => {
+    window.location.pathname = '/admin';
+    window.location.href = 'https://example.test/admin?recovery=restart';
+    const html = renderToStaticMarkup(createElement(App));
+    assert.ok(html.includes('Reset your password'));
+    assert.ok(!html.includes('2D Spatial Terminal Map'));
 });

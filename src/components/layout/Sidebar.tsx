@@ -24,12 +24,14 @@ export const NAV_ITEMS = [
 ];
 
 export function Sidebar({
+    hostedAdmin = false,
     activeTab,
     setActiveTab,
     onLogout,
     system,
     onSystemDetails,
 }: {
+    hostedAdmin?: boolean;
     activeTab: string;
     setActiveTab: (tab: string) => void;
     onLogout: () => void;
@@ -108,7 +110,7 @@ export function Sidebar({
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-slate-500 hover:text-red-400 hover:bg-red-900/20"
                     >
                         <LogOut size={17} />
-                        <span className="flex-1 text-left">{DEMO_MODE ? "Exit Demo" : "Log Out"}</span>
+                        <span className="flex-1 text-left">{hostedAdmin ? "Log Out" : DEMO_MODE ? "Exit Demo" : "Log Out"}</span>
                     </button>
                 </div>
             </nav>
@@ -120,7 +122,7 @@ export function Sidebar({
                         <span className="text-emerald-300 text-xs font-bold">AD</span>
                     </div>
                     <div>
-                        <p className="text-slate-200 text-xs font-semibold">{DEMO_MODE ? "Demo visitor" : "Admin"}</p>
+                        <p className="text-slate-200 text-xs font-semibold">{hostedAdmin ? "Hosted administrator" : DEMO_MODE ? "Demo visitor" : "Admin"}</p>
                         <p className="text-slate-500 text-[10px]">Panabo City Terminal</p>
                     </div>
                 </div>

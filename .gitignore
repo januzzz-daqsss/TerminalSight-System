@@ -54,6 +54,7 @@ trained_models/ssd300_vgg16/AMD/
 *.sqlite3
 .env*
 !.env.demo
+!.env.example
 .vercel/
 trained_models/**/*.pt
 trained_models/**/*.pth

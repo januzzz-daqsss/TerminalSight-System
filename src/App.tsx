@@ -1,3 +1,6 @@
+import { HostedAuthProvider } from './auth/HostedAuthProvider';
+import { HostedAccess } from './auth/HostedAccess';
+import { capabilities } from './auth/capabilities';
 import { DEMO_MODE, DEMO_DESCRIPTION, demoBays } from './demo';
 import { PublicView } from "./components/views/PublicView";
 import { useNotifications } from "./notifications/useNotifications";
@@ -18,8 +21,17 @@ import { PublicSignageView } from "./components/views/PublicSignageView";
 import { DashboardView } from "./components/views/DashboardView";
 
 export default function App() {
+    const path = window.location.pathname;
+    if (DEMO_MODE && (path === '/admin' || path.startsWith('/admin/') || path === '/auth/callback')) {
+        return <HostedAuthProvider><HostedAccess>{logout => <TerminalApp hostedLogout={logout} />}</HostedAccess></HostedAuthProvider>;
+    }
+    return <TerminalApp />;
+}
+
+function TerminalApp({ hostedLogout }: { hostedLogout?: () => void }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isExploringDemo, setIsExploringDemo] = useState(false);
+    const access = capabilities(hostedLogout ? 'hosted-admin' : isExploringDemo ? 'demo-visitor' : isAuthenticated ? 'local-admin' : null, DEMO_MODE);
     const [now, setNow] = useState(new Date());
     const isPublic = ['/signage', '/public-view'].includes(window.location.pathname);
     const [bays, setBays] = useState<Bay[]>(DEMO_MODE ? demoBays : initialBays);
@@ -28,7 +40,7 @@ export default function App() {
     const [showSystem, setShowSystem] = useState(false);
     const closeSystem = useCallback(() => setShowSystem(false), []);
     const [focusTarget, setFocusTarget] = useState<{ target: Target; nonce: number } | null>(null);
-    const notifications = useNotifications(bays, isAuthenticated && !isPublic && !DEMO_MODE, liveDataReady);
+    const notifications = useNotifications(bays, access.canOperateTerminal && !isPublic, liveDataReady);
     const inspectNotice = (notice: Notice) => {
         notifications.markRead(notice.id);
         if (notice.target?.kind === 'system') setShowSystem(true);
@@ -83,7 +95,7 @@ export default function App() {
 
     // Text-to-Speech (TTS) PA System Logic
     useEffect(() => {
-        if (DEMO_MODE || isPublic || !isAuthenticated || !liveDataReady) return;
+        if (!access.canOperateTerminal || isPublic || !liveDataReady) return;
 
         const savedSettings = localStorage.getItem("terminalsight-settings");
         const settings = savedSettings ? JSON.parse(savedSettings) : { paVolume: 80, language: "bisaya" };
@@ -107,7 +119,7 @@ export default function App() {
         if (updated) {
             setBays(nextBays);
         }
-    }, [bays, liveDataReady, isPublic, isAuthenticated]);
+    }, [bays, liveDataReady, isPublic, access.canOperateTerminal]);
 
     if (window.location.pathname === "/signage") {
         return <PublicSignageView bays={bays} now={now} live={liveDataReady || DEMO_MODE} />;
@@ -117,7 +129,7 @@ export default function App() {
         return <PublicView bays={bays} now={now} live={liveDataReady || DEMO_MODE} />;
     }
 
-    if (!isAuthenticated && !(DEMO_MODE && isExploringDemo)) {
+    if (!access.canViewDashboard) {
         return <AdminLogin
             onLogin={() => { if (!DEMO_MODE) setIsAuthenticated(true); }}
             onExploreDemo={DEMO_MODE ? () => setIsExploringDemo(true) : undefined}
@@ -128,10 +140,12 @@ export default function App() {
         <div className="flex h-screen print:h-auto bg-slate-50 overflow-hidden print:overflow-visible font-sans">
             <Sidebar
                 system={notifications.system}
-                onSystemDetails={() => { if (!DEMO_MODE) setShowSystem(true); }}
+                hostedAdmin={!!hostedLogout}
+                onSystemDetails={() => { if (access.canOperateTerminal) setShowSystem(true); }}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onLogout={() => {
+                    if (hostedLogout) { hostedLogout(); return; }
                     if (DEMO_MODE) { setIsExploringDemo(false); setActiveTab("dashboard"); return; }
                     sessionStorage.removeItem("terminalsight-export-token");
                     setIsAuthenticated(false);
@@ -149,6 +163,7 @@ export default function App() {
                     inspect={inspectNotice}
                 />
 
+                {hostedLogout && <p role="status" className="px-5 py-2 bg-emerald-50 text-emerald-900">Hosted administrator · Sample data only · No live terminal synchronization</p>}
                 {DEMO_MODE && <aside role="status" className="shrink-0 border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900"><strong>Hosted demonstration.</strong> {DEMO_DESCRIPTION}</aside>}
                 {notifications.banners[0] && <div className="relative z-40 flex shrink-0 justify-center px-5 pt-3 print:hidden"><NotificationBanner key={notifications.banners[0].id} notice={notifications.banners[0]} dismiss={notifications.dismiss} inspect={inspectNotice} /></div>}
                 {showSystem && <SystemDetails system={notifications.system} close={closeSystem} testNotification={notifications.testNotification} />}

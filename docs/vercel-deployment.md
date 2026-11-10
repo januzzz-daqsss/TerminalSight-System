@@ -1,5 +1,10 @@
 # IT415 frontend deployment
 
+Phase 2 adds optional hosted sign-in at `/admin` and invitation/recovery handling
+at `/auth/callback`. Root Explore Demo remains anonymous. See
+[hosted authentication](hosted-authentication.md) for preview setup and limits.
+The deployment findings below are historical records from the original demo setup.
+
 This is a clearly labeled, static demonstration. It needs no Flask server,
 database, camera, login credentials, Supabase, or cloud synchronization. The
 hosted entry offers **Explore Demo**, which opens a separate visitor state, not

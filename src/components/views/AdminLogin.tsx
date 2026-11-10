@@ -169,13 +169,14 @@ export function AdminLogin({ onLogin, onExploreDemo }: { onLogin: () => void; on
                         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-slate-700">
                             <h2 className="font-bold text-slate-800">Hosted demonstration</h2>
                             <p className="mt-2">Explore TerminalSight using clearly labeled sample data. No account is needed. This read-only preview has no live camera, database or terminal connection.</p>
-                            <p className="mt-2">Administrator sign-in is available only on the local terminal system.</p>
+                            <p className="mt-2">Local terminal administration remains available on the local system.</p>
                         </div>
                         <button type="button" onClick={onExploreDemo} disabled={!onExploreDemo}
                             className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-md transition-colors hover:from-emerald-500 hover:to-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
                             Explore Demo
                         </button>
                         <div className="flex justify-center gap-4 text-xs font-semibold text-emerald-700">
+                            <a href="/admin" className="underline">Administrator sign-in</a>
                             <a href="/public-view" className="underline">Passenger display</a>
                             <a href="/signage" className="underline">Driver display</a>
                         </div>
