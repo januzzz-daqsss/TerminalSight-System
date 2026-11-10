@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { authorizeHostedAdmin } from '../server/hostedAuthorization.ts';
+import { authorizeHostedAdmin } from '../api/auth/authorize.ts';
 import { createHostedAuthStore } from '../src/auth/hostedAuthStore.ts';
 import endpoint from '../api/auth/authorize.ts';
 

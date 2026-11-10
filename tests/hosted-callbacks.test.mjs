@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { HOSTED_AUTH_OPTIONS } from '../src/auth/supabaseClient.ts';
 import { acceptCallback, initialHostedView, requestRecovery, setPassword, LINK_ERROR } from '../src/auth/hostedFlows.ts';
 import { createHostedAuthStore } from '../src/auth/hostedAuthStore.ts';
-import { authorizeHostedAdmin } from '../server/hostedAuthorization.ts';
+import { authorizeHostedAdmin } from '../api/auth/authorize.ts';
 
 // Actual SDK, isolated clients, synthetic identities, and intercepted HTTP only.
 // No credentials, email delivery, browser storage, or external requests are used.

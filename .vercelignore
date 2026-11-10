@@ -12,5 +12,3 @@
 !api/
 !api/auth/
 !api/auth/authorize.ts
-!server/
-!server/hostedAuthorization.ts

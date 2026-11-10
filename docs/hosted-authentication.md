@@ -26,7 +26,7 @@ it never proves administrator identity.
   deployment can operate terminal controls. Hosted administrators and visitors
   see sample data; camera/AI/settings/PA controls and saved SQLite exports remain
   disabled. No live synchronization is implied.
-- `api/auth/authorize.ts` calls `server/hostedAuthorization.ts`, which verifies
+- `api/auth/authorize.ts` contains the server-side gate, which verifies
   each bearer token using Supabase `auth.getUser(token)` and checks the returned
   user's trusted `app_metadata.role === 'admin'`. It ignores caller-supplied role
   headers, query parameters and user metadata. Responses are uncached: 401 for
@@ -93,7 +93,7 @@ After code review and separate deployment approval:
    production branch/domain unchanged. Keep repository root, Vite preset,
    `npm run build:demo`, output `dist`, and Node 22.x.
 2. Configure the four variables in Preview and rebuild. The Vercel allowlist
-   includes only frontend inputs and the isolated auth function/helper; Flask,
+   includes only frontend inputs and the isolated auth function; Flask,
    SQLite, models and videos stay excluded. SPA fallback excludes `/api`.
 3. In a test Supabase project, authorize the exact preview `/auth/callback` URL.
    Check the invitation/recovery email template actually honors that redirect,
@@ -124,6 +124,7 @@ commits, pushes or deployments were used during automated validation.
 ```powershell
 npm.cmd exec -- tsc --noEmit
 node --experimental-strip-types --test tests/hosted-auth.test.mjs tests/hosted-flows.test.mjs tests/hosted-callbacks.test.mjs
+node --test tests/hosted-function-runtime.test.mjs
 node --experimental-strip-types --test --test-timeout=120000 tests/demo-deployment.test.mjs tests/notifications.test.mjs tests/public-display.test.mjs
 npm.cmd run build:demo
 npm.cmd run build
@@ -146,3 +147,25 @@ References: [Supabase recovery](https://supabase.com/docs/reference/javascript/a
 [OTP verification](https://supabase.com/docs/reference/javascript/auth-verifyotp),
 [PKCE limitations](https://supabase.com/docs/guides/auth/sessions/pkce-flow),
 [server identity verification](https://supabase.com/docs/reference/javascript/auth-getuser).
+
+## Serverless ESM import regression
+
+The Preview at commit `4ad2fd6` crashed before authorization because the emitted
+`api/auth/authorize.js` still imported `../../server/hostedAuthorization.ts`, which
+was not resolvable in the deployed function. The frontend TypeScript configuration
+allows `.ts` imports with `noEmit`; passing that check or Vite's frontend build
+never proved that the function's JavaScript runtime imports were valid.
+
+The small authorization gate now lives in the function entry point. Its only
+runtime imports are `node:process` and the declared production dependency
+`@supabase/supabase-js`. The old helper and its deployment exception were removed;
+role checks, token verification and API routing are unchanged.
+
+`tests/hosted-function-runtime.test.mjs` transpiles the actual entry point to an
+isolated JavaScript artifact, omits source helpers, and imports it in a new Node
+process with TypeScript stripping disabled. It resolves the installed Supabase
+package and invokes the compiled default handler for missing/invalid tokens,
+non-admins and admins with mocked upstream HTTP. The test reproduced the old
+module-not-found failure and passes after the fix. This is a local emitted-entry
+runtime check, not the Vercel builder or a deployed function test. A fresh Preview
+must still confirm platform packaging and real Supabase connectivity.
