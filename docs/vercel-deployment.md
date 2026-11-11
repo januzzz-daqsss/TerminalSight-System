@@ -1,7 +1,8 @@
 # IT415 frontend deployment
 
-Phase 2 adds optional hosted sign-in at `/admin` and invitation/recovery handling
-at `/auth/callback`. Root Explore Demo remains anonymous. See
+The hosted landing page at `/` now shows administrator sign-in, also available at
+`/admin`, with invitation/recovery handling at `/auth/callback`. **Explore Demo
+Mode** opens the anonymous sample dashboard at `/demo`. See
 [hosted authentication](hosted-authentication.md) for preview setup and limits.
 The deployment findings below are historical records from the original demo setup.
 

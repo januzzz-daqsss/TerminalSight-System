@@ -22,16 +22,17 @@ import { DashboardView } from "./components/views/DashboardView";
 
 export default function App() {
     const path = window.location.pathname;
-    if (DEMO_MODE && (path === '/admin' || path.startsWith('/admin/') || path === '/auth/callback')) {
+    // Public hosted routes never mount Supabase; all other hosted entry points
+    // share the existing administrator gate, including / and /admin.
+    if (DEMO_MODE && !['/demo', '/public-view', '/signage'].includes(path)) {
         return <HostedAuthProvider><HostedAccess>{logout => <TerminalApp hostedLogout={logout} />}</HostedAccess></HostedAuthProvider>;
     }
-    return <TerminalApp />;
+    return <TerminalApp demoVisitor={DEMO_MODE && path === '/demo'} />;
 }
 
-function TerminalApp({ hostedLogout }: { hostedLogout?: () => void }) {
+function TerminalApp({ hostedLogout, demoVisitor = false }: { hostedLogout?: () => void; demoVisitor?: boolean }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isExploringDemo, setIsExploringDemo] = useState(false);
-    const access = capabilities(hostedLogout ? 'hosted-admin' : isExploringDemo ? 'demo-visitor' : isAuthenticated ? 'local-admin' : null, DEMO_MODE);
+    const access = capabilities(hostedLogout ? 'hosted-admin' : demoVisitor ? 'demo-visitor' : isAuthenticated ? 'local-admin' : null, DEMO_MODE);
     const [now, setNow] = useState(new Date());
     const isPublic = ['/signage', '/public-view'].includes(window.location.pathname);
     const [bays, setBays] = useState<Bay[]>(DEMO_MODE ? demoBays : initialBays);
@@ -132,7 +133,6 @@ function TerminalApp({ hostedLogout }: { hostedLogout?: () => void }) {
     if (!access.canViewDashboard) {
         return <AdminLogin
             onLogin={() => { if (!DEMO_MODE) setIsAuthenticated(true); }}
-            onExploreDemo={DEMO_MODE ? () => setIsExploringDemo(true) : undefined}
         />;
     }
 
@@ -146,7 +146,7 @@ function TerminalApp({ hostedLogout }: { hostedLogout?: () => void }) {
                 setActiveTab={setActiveTab}
                 onLogout={() => {
                     if (hostedLogout) { hostedLogout(); return; }
-                    if (DEMO_MODE) { setIsExploringDemo(false); setActiveTab("dashboard"); return; }
+                    if (DEMO_MODE) { window.location.replace('/'); return; }
                     sessionStorage.removeItem("terminalsight-export-token");
                     setIsAuthenticated(false);
                 }}

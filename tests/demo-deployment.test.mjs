@@ -21,14 +21,17 @@ after(async () => {
     delete globalThis.sessionStorage;
 });
 
-test('hosted entry offers Explore Demo without an administrator form', () => {
+test('hosted root shows administrator login and a secondary direct demo link', () => {
     window.location.pathname = '/';
+    window.location.href = 'https://example.test/';
     const html = renderToStaticMarkup(createElement(App));
     assert.ok(demo.DEMO_MODE);
-    assert.ok(html.includes('Explore Demo'));
-    assert.ok(html.includes('read-only preview'));
-    assert.ok(html.includes('Local terminal administration remains available on the local system'));
-    assert.ok(!html.includes('<form') && !html.includes('<input'));
+    assert.ok(html.includes('Hosted administrator sign-in'));
+    assert.ok(html.includes('type="email"') && html.includes('type="password"'));
+    assert.ok(html.includes('Forgot password?'));
+    assert.match(html, /<a[^>]*href="\/demo"[^>]*>[\s\S]*?Explore Demo Mode/);
+    assert.ok(html.indexOf('Explore Demo Mode') > html.indexOf('</form>'));
+    assert.ok(html.includes('Read-only sample data with no live terminal operations'));
     assert.ok(!html.includes('2D Spatial Terminal Map'));
 });
 
@@ -52,7 +55,7 @@ test('demo dashboard and navigation retain the terminal map and all destinations
     assert.ok(dashboard.includes('2D Spatial Terminal Map'));
     assert.ok(dashboard.includes('Hosted demonstration.'));
     const sidebar = renderToStaticMarkup(createElement(Sidebar, { activeTab: 'dashboard', setActiveTab() {}, onLogout() {}, onSystemDetails() {}, system: initialSystem }));
-    for (const text of ['Dashboard', 'Camera Zones', 'Violation Logs', 'Analytics', 'Settings', 'Launch Public View', 'Launch Public Display', 'Exit Demo', 'Demo visitor']) assert.ok(sidebar.includes(text), text);
+    for (const text of ['Dashboard', 'Camera Zones', 'Violation Logs', 'Analytics', 'Settings', 'Launch Public View', 'Launch Public Display', 'Back to Sign In', 'Demo visitor']) assert.ok(sidebar.includes(text), text);
 });
 
 test('camera page has no stream and no enabled terminal configuration', async () => {
@@ -95,7 +98,7 @@ test('demo excludes public assets; normal builds retain local mode; SPA routes c
     assert.equal(vercel.buildCommand, 'npm run build:demo');
     assert.deepEqual(vercel.rewrites, [{ source: '/((?!api(?:/|$)).*)', destination: '/index.html' }]);
     const spaRoute = new RegExp(`^${vercel.rewrites[0].source}$`);
-    for (const path of ['/', '/public-view', '/signage', '/admin', '/auth/callback']) assert.ok(spaRoute.test(path));
+    for (const path of ['/', '/demo', '/public-view', '/signage', '/admin', '/auth/callback']) assert.ok(spaRoute.test(path));
     for (const path of ['/api', '/api/auth/authorize', '/api/login']) assert.ok(!spaRoute.test(path));
 });
 
@@ -113,7 +116,7 @@ test('normal local build retains administrator login without demo access', async
 
 
 test('hosted administrator routes require authorization while demo remains anonymous', () => {
-    for (const pathname of ['/admin', '/admin/settings', '/auth/callback']) {
+    for (const pathname of ['/', '/admin', '/admin/settings', '/auth/callback']) {
         window.location.pathname = pathname;
         window.location.href = `https://example.test${pathname}`;
         const html = renderToStaticMarkup(createElement(App));
@@ -121,11 +124,43 @@ test('hosted administrator routes require authorization while demo remains anony
         assert.ok(html.includes('Explore Demo'));
         assert.ok(!html.includes('terminalsight-export-token'));
     }
-    window.location.pathname = '/';
-    window.location.href = 'https://example.test/';
+    window.location.pathname = '/demo';
+    window.location.href = 'https://example.test/demo';
     const html = renderToStaticMarkup(createElement(App));
-    assert.ok(html.includes('href="/admin"'));
-    assert.ok(html.includes('No account is needed'));
+    assert.ok(html.includes('2D Spatial Terminal Map'));
+    assert.ok(html.includes('Demo visitor'));
+    assert.ok(html.includes('Back to Sign In'));
+    assert.ok(!html.includes('Hosted administrator sign-in'));
+});
+
+test('demo and public routes never initialize hosted authentication, including repeat visits', async () => {
+    // Make auth initialization fatal: these routes must not even mount the provider.
+    const publicServer = await createServer({ mode: 'demo',
+        plugins: [{ name: 'forbid-public-auth', enforce: 'pre', transform(_code, id) {
+            if (id.replaceAll('\\', '/').endsWith('/src/auth/supabaseClient.ts')) {
+                return 'export function getHostedSupabaseClient() { throw new Error("Public routes must not initialize Supabase"); }';
+            }
+        } }], server: { middlewareMode: true, ws: false }, appType: 'custom' });
+    try {
+        const PublicApp = (await publicServer.ssrLoadModule('/src/App.tsx')).default;
+        for (const pathname of ['/demo', '/public-view', '/demo', '/signage', '/demo']) {
+            window.location = { pathname, href: `https://example.test${pathname}` };
+            const html = renderToStaticMarkup(createElement(PublicApp));
+            assert.ok(html.includes('Hosted demonstration.'), pathname);
+            assert.ok(!html.includes('Hosted administrator sign-in'), pathname);
+        }
+    } finally { await publicServer.close(); }
+});
+
+test('returning from demo or signed-out admin routes shows the same login without redirects', () => {
+    for (const pathname of ['/demo', '/', '/admin', '/']) {
+        window.location = { pathname, href: `https://example.test${pathname}`,
+            assign() { assert.fail('Rendering must not redirect'); },
+            replace() { assert.fail('Rendering must not redirect'); } };
+        const html = renderToStaticMarkup(createElement(App));
+        assert.equal(html.includes('2D Spatial Terminal Map'), pathname === '/demo');
+        assert.equal(html.includes('Hosted administrator sign-in'), pathname !== '/demo');
+    }
 });
 
 test('interrupted setup has a credential-free recovery restart route', () => {

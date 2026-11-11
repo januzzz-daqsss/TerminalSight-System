@@ -1,11 +1,18 @@
 # Hosted authentication — Phase 2
 
-The hosted demo build keeps `/` as its anonymous Explore Demo entry. `/admin`
-and `/admin/*` mount the Supabase provider and administrator gate. `/auth/callback`
+The hosted demo build shows the administrator login at `/`, with a secondary
+**Explore Demo Mode** button linking directly to `/demo`. `/admin` and `/admin/*`
+remain administrator entry points using the same provider and gate. `/auth/callback`
 accepts invitation/recovery links and shows password setup. `/public-view` and
 `/signage` remain public, labeled sample displays without Supabase initialization.
 Normal local builds retain Flask login. Deployment mode chooses infrastructure;
 it never proves administrator identity.
+
+`/demo` opens the sample dashboard without mounting Supabase or calling the
+authorization endpoint. Its **Back to Sign In** action replaces the page with `/`.
+Administrator **Sign Out** clears authentication before replacing the page with
+the same root login; failed logout remains locked with an error. Full navigation
+discards memory-only sessions. No route grants live terminal controls.
 
 ## Authentication and permissions
 
@@ -101,8 +108,10 @@ After code review and separate deployment approval:
    have not been performed by the implementation.
 4. Provision an administrator with trusted `app_metadata.role = admin` and a
    non-admin test account. Never grant roles through editable user metadata.
-5. Confirm root Explore Demo and both displays load without authentication or
-   auth API calls. Verify direct `/admin` access requires sign-in, wrong passwords
+5. Confirm `/` shows administrator login and **Explore Demo Mode**. Follow its link
+   to `/demo` and check both displays load without authentication or auth API calls.
+   Confirm **Back to Sign In** and **Sign Out** return to `/`. Verify direct `/admin`
+   access requires sign-in, wrong passwords
    fail generically, non-admins are denied, and valid admins see sample labels.
 6. Test invitation and recovery manually with those test accounts, expiry/reused
    links, password confirmation, token refresh, logout and network failure.

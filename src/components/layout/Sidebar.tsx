@@ -110,7 +110,7 @@ export function Sidebar({
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 text-slate-500 hover:text-red-400 hover:bg-red-900/20"
                     >
                         <LogOut size={17} />
-                        <span className="flex-1 text-left">{hostedAdmin ? "Log Out" : DEMO_MODE ? "Exit Demo" : "Log Out"}</span>
+                        <span className="flex-1 text-left">{hostedAdmin ? "Sign Out" : DEMO_MODE ? "Back to Sign In" : "Log Out"}</span>
                     </button>
                 </div>
             </nav>

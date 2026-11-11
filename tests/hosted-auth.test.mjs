@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { authorizeHostedAdmin } from '../api/auth/authorize.ts';
 import { createHostedAuthStore } from '../src/auth/hostedAuthStore.ts';
 import endpoint from '../api/auth/authorize.ts';
+import { signOutToLogin } from '../src/auth/hostedFlows.ts';
 
 const configuration = { url: 'https://example.supabase.co', publishableKey: 'sb_publishable_test_only' };
 const request = (token = 'test-token') => new Request('https://example.test/api/auth/authorize', {
@@ -169,6 +170,33 @@ test('failed sign-out remains locked out even if the SDK emits a refreshed sessi
     t.after(store.start());
     await settle();
     await assert.rejects(store.logout(), /Reload/);
+    auth.emit('TOKEN_REFRESHED', session());
+    await settle();
+    assert.equal(store.getSnapshot().status, 'unauthenticated');
+});
+
+test('logout clears administrator access before replacing the route with root login', async t => {
+    const auth = mockAuth();
+    const store = createHostedAuthStore(auth, allowed);
+    t.after(store.start());
+    await settle();
+    assert.equal(store.getSnapshot().status, 'authenticated');
+    const destinations = [];
+    await signOutToLogin(store.logout, path => {
+        assert.equal(store.getSnapshot().status, 'unauthenticated');
+        assert.equal(store.getSnapshot().session, null);
+        destinations.push(path);
+    });
+    assert.deepEqual(destinations, ['/']);
+});
+
+test('failed logout cannot navigate away or restore administrator access', async t => {
+    const auth = mockAuth();
+    auth.signOut = async () => ({ error: new Error('offline') });
+    const store = createHostedAuthStore(auth, allowed);
+    t.after(store.start());
+    await settle();
+    await assert.rejects(signOutToLogin(store.logout, () => assert.fail('Must not navigate after failed logout')));
     auth.emit('TOKEN_REFRESHED', session());
     await settle();
     assert.equal(store.getSnapshot().status, 'unauthenticated');

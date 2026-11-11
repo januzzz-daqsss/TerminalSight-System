@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode, type FormEvent } from 'react';
-import { MonitorSmartphone } from 'lucide-react';
+import { MonitorSmartphone, ArrowRight } from 'lucide-react';
 import { getHostedSupabaseClient } from './supabaseClient';
 import { useHostedAuth } from './HostedAuthProvider';
-import { acceptCallback, requestRecovery, setPassword, signIn, initialHostedView, LINK_ERROR } from './hostedFlows';
+import { acceptCallback, requestRecovery, setPassword, signIn, signOutToLogin, initialHostedView, LINK_ERROR } from './hostedFlows';
 
 export function HostedAccess({ children }: { children: (logout: () => void) => ReactNode }) {
     const identity = useHostedAuth();
@@ -35,7 +35,7 @@ export function HostedAccess({ children }: { children: (logout: () => void) => R
 
     const logout = async () => {
         setBusy(true); setError('');
-        try { await identity.logout(); window.location.assign('/'); }
+        try { await signOutToLogin(identity.logout, path => window.location.replace(path)); }
         catch { setLogoutFailed(true); setError('Sign-out could not be completed. Reload this page before signing in again.'); }
         finally { setBusy(false); }
     };
@@ -72,8 +72,8 @@ export function HostedAccess({ children }: { children: (logout: () => void) => R
             {denied && <p role="alert">Administrator access could not be verified. Contact your administrator or try again.</p>}
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
             {message && <p role="status" className="text-sm text-emerald-800">{message}</p>}
-            {client && !checking && !denied && view !== 'callback' && !logoutFailed && <form onSubmit={submit} aria-busy={busy} className="space-y-4">
-                <fieldset disabled={busy} className="space-y-4">
+            {!checking && !denied && view !== 'callback' && !logoutFailed && <form onSubmit={submit} aria-busy={busy} className="space-y-4">
+                <fieldset disabled={busy || !client} className="space-y-4">
                     {view !== 'password' && <label className="block">Email<input className={inputStyle} type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label>}
                     {view !== 'forgot' && <>
                         <label className="block">{view === 'password' ? 'New password' : 'Password'}<input className={inputStyle} type={visible ? 'text' : 'password'} autoComplete={view === 'password' ? 'new-password' : 'current-password'} required minLength={view === 'password' ? 12 : undefined} value={password} onChange={e => setValue(e.target.value)} /></label>
@@ -83,11 +83,16 @@ export function HostedAccess({ children }: { children: (logout: () => void) => R
                     <button className="w-full rounded-lg bg-emerald-600 p-3 font-semibold text-white disabled:opacity-60" type="submit">{busy ? 'Please wait…' : view === 'forgot' ? 'Send reset link' : view === 'password' ? 'Save password' : 'Sign in'}</button>
                 </fieldset>
             </form>}
-            {view === 'login' && !checking && !denied && <button disabled={busy || logoutFailed} className="text-sm text-emerald-700 underline" onClick={() => { setView('forgot'); setError(''); setValue(''); }}>Forgot password?</button>}
+            {view === 'login' && !checking && !denied && <button disabled={busy || logoutFailed || !client} className="text-sm text-emerald-700 underline" onClick={() => { setView('forgot'); setError(''); setValue(''); }}>Forgot password?</button>}
             {view === 'forgot' && <button disabled={busy} className="text-sm underline" onClick={() => { setView('login'); setError(''); setMessage(''); }}>Back to sign-in</button>}
             {view === 'password' && !busy && <a href="/admin?recovery=restart" className="block text-sm text-emerald-700 underline">Request a new recovery link</a>}
             {denied && <button disabled={busy} onClick={() => { void logout(); }} className="underline">Sign out</button>}
-            <a className="block text-center font-semibold text-emerald-700 underline" href="/">Explore Demo — no login required</a>
+            <div className="border-t border-slate-200 pt-5 space-y-3">
+                <a href="/demo" aria-describedby="demo-description" className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 font-semibold text-emerald-800 transition-colors hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                    Explore Demo Mode <ArrowRight size={18} aria-hidden="true" />
+                </a>
+                <p id="demo-description" className="text-center text-xs leading-relaxed text-slate-500">No sign-in required. Read-only sample data with no live terminal operations.</p>
+            </div>
         </section>
     </main>;
 }

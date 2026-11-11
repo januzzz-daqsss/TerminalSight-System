@@ -3,6 +3,13 @@ type Auth = SupabaseClient['auth'];
 export const SIGN_IN_ERROR = 'Unable to sign in. Check your details and try again.';
 export const LINK_ERROR = 'This link is invalid or expired. Request a new link or contact your administrator.';
 
+// Replace the current document after clearing auth, so memory-only SDK state is
+// discarded and the previous dashboard is not retained as this history entry.
+export async function signOutToLogin(logout: () => Promise<void>, replace: (path: string) => void) {
+    await logout();
+    replace('/');
+}
+
 export function initialHostedView(href: string): 'login' | 'forgot' | 'callback' {
     const url = new URL(href);
     if (url.pathname === '/auth/callback') return 'callback';
