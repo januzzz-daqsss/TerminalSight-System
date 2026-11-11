@@ -1,4 +1,4 @@
-# Only the static frontend is needed for this deployment.
+# Frontend plus the isolated hosted-auth function. Never deploy the local backend.
 *
 !src/
 !src/**
@@ -9,3 +9,6 @@
 !vite.config.ts
 !vercel.json
 !.env.demo
+!api/
+!api/auth/
+!api/auth/authorize.ts

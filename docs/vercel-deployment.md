@@ -1,5 +1,11 @@
 # IT415 frontend deployment
 
+The hosted landing page at `/` now shows administrator sign-in, also available at
+`/admin`, with invitation/recovery handling at `/auth/callback`. **Explore Demo
+Mode** opens the anonymous sample dashboard at `/demo`. See
+[hosted authentication](hosted-authentication.md) for preview setup and limits.
+The deployment findings below are historical records from the original demo setup.
+
 This is a clearly labeled, static demonstration. It needs no Flask server,
 database, camera, login credentials, Supabase, or cloud synchronization. The
 hosted entry offers **Explore Demo**, which opens a separate visitor state, not
