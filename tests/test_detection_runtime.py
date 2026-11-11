@@ -19,6 +19,23 @@ class FakeAdapter:
 
 
 class DetectionRuntimeTests(unittest.TestCase):
+    def test_yolo_details_preserve_real_confidence_and_legacy_contract(self):
+        from types import SimpleNamespace
+        adapter = Adapter.__new__(Adapter)
+        adapter.name, adapter.device = 'yolov8', 'cuda'
+        boxes = [SimpleNamespace(cls=torch.tensor(i), conf=torch.tensor(score), xyxy=torch.tensor([[0., 1., 20., 30.]]))
+                 for i, score in [(0, .87), (1, .74), (2, .99)]]
+        def model(frame, **options):
+            self.assertEqual(options['device'], 'cuda')
+            return [SimpleNamespace(names={0: 'bus', 1: 'uv', 2: 'car'}, boxes=boxes)]
+        adapter.model = model
+        details = adapter.predict(np.zeros((40, 40, 3)), details=True)
+        self.assertEqual([d['vehicle_type'] for d in details], ['Bus', 'UV Express'])
+        self.assertAlmostEqual(details[0]['confidence'], .87, places=5)
+        self.assertEqual([d['class_id'] for d in details], [0, 1])
+        for item in adapter.predict(np.zeros((40, 40, 3))):
+            self.assertEqual(set(item), {'bbox', 'vehicle_type'})
+
     def test_switch_persists_and_failed_candidate_preserves_old_model(self):
         with tempfile.TemporaryDirectory() as folder:
             runtime = DetectionRuntime(Path(folder) / 'selection.json', factory=FakeAdapter)

@@ -11,7 +11,10 @@ def _worker(connection, name):
             frame = connection.recv()
             if frame is None:
                 break
-            connection.send(('ok', adapter.predict(frame)))
+            if isinstance(frame, dict) and set(frame) == {'details'}:
+                connection.send(('ok', adapter.predict_details(frame['details'])))
+            else:
+                connection.send(('ok', adapter.predict(frame)))
     except EOFError:
         pass
     except Exception as error:
@@ -66,3 +69,6 @@ class ProcessAdapter:
             self.process.kill()
             self.process.join(timeout=5)
         self.connection.close()
+
+    def predict_details(self, frame):
+        return self.predict({'details': frame})

@@ -37,11 +37,13 @@ tmp/
 
 # Large Video Files (GitHub blocks files > 100MB)
 public/sample-videos/*.mp4
+public/sample-CCTV/
 
 # Local inference runtime settings
 Ultralytics/
 config/detection.local.json
 config/detection.local.tmp
+config/camera-feeds.local.sqlite3*
 trained_models/fasterrcnn_resnet50_fpn/*.pth
 trained_models/ssd300_vgg16/*.pth
 trained_models/fasterrcnn_resnet50_fpn/AMD/

@@ -78,6 +78,9 @@ class DirectMLAdapter:
         self.session, self.input_name, self.names = session, inp.name, names
 
     def predict(self, frame):
+        return [{'bbox': item['bbox'], 'vehicle_type': item['vehicle_type']} for item in self.predict_details(frame)]
+
+    def predict_details(self, frame):
         height, width = frame.shape[:2]
         scale = min(512 / width, 512 / height)
         resized = cv2.resize(frame, (round(width * scale), round(height * scale)))
@@ -109,4 +112,6 @@ class DirectMLAdapter:
                         int(np.clip((y + h - top) / scale, 0, height))]
                 score = float(confidence[index])
                 detections.append(dict(label=self.names[label], confidence=score, bbox=bbox))
-        return [{"bbox": item["bbox"], "vehicle_type": "Bus" if item["label"] == "bus" else "UV Express"} for item in detections]
+        return [dict(bbox=item['bbox'], vehicle_type='Bus' if item['label'] == 'bus' else 'UV Express',
+                     class_name=item['label'], class_id=0 if item['label'] == 'bus' else 1,
+                     confidence=item['confidence']) for item in detections]

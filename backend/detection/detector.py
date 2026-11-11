@@ -9,7 +9,7 @@ SLOTS_SOUTHBOUND = {
     "Bay_6": [(1457, 825), (821, 882), (565, 678), (898, 651)]
 }
 SLOTS_NORTHBOUND = {
-    "Bay_1": [(1615, 794), (786, 844), (656, 598), (1074, 586)] 
+    "Bay_1": [(1615, 794), (786, 844), (656, 598), (1074, 586)]
 }
 
 # Pre-compute polygons and arrays for performance
@@ -21,9 +21,23 @@ slot_arrays_nb = {name: np.array(coords, np.int32) for name, coords in SLOTS_NOR
 
 OCCUPANCY_THRESHOLD = 0.20
 
-def analyze_frame(frame, camera="southbound", include_detections=False, annotate=True):
-    results = runtime.predict(frame)
-    
+def analyze_frame(frame, camera="southbound", include_detections=False, annotate=True, *, roi=None):
+    """Legacy defaults remain fixed; optional prepared geometry is diagnostic-only."""
+    if roi is not None and frame.shape[:2] != (roi.height, roi.width):
+        raise ValueError('Frame dimensions do not match the prepared ROI.')
+    polys = roi.polygons if roi is not None else (slot_polygons_sb if camera == "southbound" else slot_polygons_nb)
+    statuses, assignments = assign_detections(runtime.predict(frame), polys)
+    if annotate:
+        draw_slots(frame, camera, statuses, roi=roi)
+    return (statuses, assignments) if include_detections else statuses
+
+
+def assign_detections(results, polygons, threshold=OCCUPANCY_THRESHOLD):
+    """Pure legacy IoA assignment. Input order and first-detection tie breaks matter."""
+    for polygon in polygons.values():
+        if not isinstance(polygon, Polygon) or not polygon.is_valid or polygon.area <= 0:
+            raise ValueError('Invalid parking polygon.')
+
     # Convert bounding boxes to Shapely polygons
     detected_vehicles = []
     for box in results:
@@ -35,11 +49,9 @@ def analyze_frame(frame, camera="southbound", include_detections=False, annotate
     status_dictionary = {}
     assignments = {}
     used_vehicles = set()
-    polys = slot_polygons_sb if camera == "southbound" else slot_polygons_nb
-
-    for slot_name, slot_poly in polys.items():
+    for slot_name, slot_poly in polygons.items():
         is_occupied = False
-        
+
         best_overlap = 0
         best_index = None
         for index, vehicle in enumerate(detected_vehicles):
@@ -49,27 +61,25 @@ def analyze_frame(frame, camera="southbound", include_detections=False, annotate
             # Calculate Intersection over Area (IoA)
             intersection_area = vehicle_poly.intersection(slot_poly).area
             overlap_percentage = intersection_area / slot_poly.area
-            
-            if overlap_percentage >= OCCUPANCY_THRESHOLD and overlap_percentage > best_overlap:
+
+            if overlap_percentage >= threshold and overlap_percentage > best_overlap:
                 best_overlap, best_index = overlap_percentage, index
         if best_index is not None:
             is_occupied = True
             used_vehicles.add(best_index)
             assignments[slot_name] = {key: value for key, value in detected_vehicles[best_index].items() if key != "polygon"}
-        
+
         status_dictionary[slot_name] = "OCCUPIED" if is_occupied else "AVAILABLE"
 
-    if annotate:
-        draw_slots(frame, camera, status_dictionary)
-    return (status_dictionary, assignments) if include_detections else status_dictionary
+    return status_dictionary, assignments
 
 
-def draw_slots(frame, camera, statuses):
+def draw_slots(frame, camera, statuses, *, roi=None):
     """Render confirmed occupancy so video overlays and public displays agree."""
-    arrays = slot_arrays_sb if camera == "southbound" else slot_arrays_nb
+    arrays = roi.arrays if roi is not None else (slot_arrays_sb if camera == "southbound" else slot_arrays_nb)
     for name, points in arrays.items():
         status = statuses.get(name, "AVAILABLE")
-        color = (0, 255, 0) if status == "AVAILABLE" else (0, 0, 255)
+        color = (94, 197, 34) if status == "AVAILABLE" else (68, 68, 239)  # #22c55e / #ef4444, BGR
         pts = points.reshape((-1, 1, 2))
         cv2.polylines(frame, [pts], isClosed=True, color=color, thickness=3)
         cv2.putText(frame, f"{name}: {status}", (pts[0][0][0], pts[0][0][1] - 10),

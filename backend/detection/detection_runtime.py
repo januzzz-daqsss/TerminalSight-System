@@ -68,9 +68,9 @@ class Adapter:
             self.directml.close()
 
     @torch.inference_mode()
-    def predict(self, frame):
+    def predict(self, frame, details=False):
         if self.device == 'amd':
-            return self.directml.predict(frame)
+            return self.directml.predict_details(frame) if details else self.directml.predict(frame)
         height, width = frame.shape[:2]
         output = []
         if self.name == 'yolov8':
@@ -78,8 +78,11 @@ class Adapter:
             for box in result.boxes:
                 name = str(result.names[int(box.cls.item())]).lower()
                 if name in ('bus', 'uv'):
-                    output.append({'bbox': box.xyxy[0].cpu().tolist(),
-                                   'vehicle_type': 'Bus' if name == 'bus' else 'UV Express'})
+                    item = {'bbox': box.xyxy[0].cpu().tolist(),
+                            'vehicle_type': 'Bus' if name == 'bus' else 'UV Express'}
+                    if details:
+                        item.update(class_name=name, class_id=int(box.cls.item()), confidence=float(box.conf.item()))
+                    output.append(item)
         else:
             rgb = cv2.cvtColor(cv2.resize(frame, (416, 416)), cv2.COLOR_BGR2RGB)
             tensor = torch.from_numpy(np.ascontiguousarray(rgb.transpose(2, 0, 1))).to(self.device, dtype=torch.float32) / 255
@@ -185,6 +188,21 @@ class DetectionRuntime:
                 self.device = 'cpu'
                 self.error = 'AMD worker failed. Detection is continuing on CPU.'
                 return self.adapter.predict(frame)
+
+    def predict_diagnostic(self, frame):
+        """Use the active YOLO adapter without queueing or changing runtime state.
+
+        Busy operational inference/switching wins. Native AMD failure is surfaced;
+        the existing operational recovery path remains responsible for recovery.
+        """
+        if self.change_lock.locked() or not self.lock.acquire(blocking=False):
+            raise RuntimeError('Detector is busy; diagnostic frame skipped.')
+        try:
+            if self.adapter is None or self.loading or self.model != 'yolov8':
+                raise RuntimeError('Select and initialize YOLOv8 in AI Detection first.')
+            return self.adapter.predict(frame, details=True), {'model': self.model, 'device': self.device}
+        finally:
+            self.lock.release()
 
 
 runtime = DetectionRuntime()

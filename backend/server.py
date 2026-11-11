@@ -553,6 +553,43 @@ def get_timer_6():
 def get_timer_1():
     return jsonify(seconds=occupancy.snapshot()[0]['elapsedSeconds'])
 
+def authorize_feed_configuration():
+    """Use the existing local administrator token, never a hosted Supabase token."""
+    authorization = request.headers.get('Authorization', '')
+    try:
+        if not authorization.startswith('Bearer '):
+            raise BadSignature('Missing token')
+        identity = export_tokens.loads(authorization[7:], max_age=8 * 60 * 60)
+        with closing(sqlite3.connect(DB_FILE)) as conn:
+            user = conn.execute('SELECT password_hash FROM admin_users WHERE username = ?',
+                                (identity['username'],)).fetchone()
+        if not user or not secrets.compare_digest(hashlib.sha256(user[0].encode()).hexdigest(), identity['credential_version']):
+            raise BadSignature('Credentials changed')
+    except (BadSignature, KeyError, TypeError, sqlite3.Error):
+        return jsonify(message='Please sign in locally to manage camera feed configurations.'), 401
+    return None
+
+
+from backend.cameras.feed_config import create_feed_blueprint
+
+app.config['CAMERA_FEEDS_DATABASE'] = ROOT / 'config' / 'camera-feeds.local.sqlite3'
+app.config['CAMERA_SAMPLE_ROOT'] = ROOT / 'public'
+app.register_blueprint(create_feed_blueprint(authorize_feed_configuration,
+    lambda: app.config['CAMERA_FEEDS_DATABASE'], lambda: app.config['CAMERA_SAMPLE_ROOT']))
+
+from backend.cameras.sample_ai import create_sample_ai_blueprint
+app.register_blueprint(create_sample_ai_blueprint(authorize_feed_configuration, ROOT, retired=True))
+
+from backend.cameras.synchronized_preview import create_synchronized_blueprint
+app.register_blueprint(create_synchronized_blueprint(authorize_feed_configuration, ROOT, retired=True))
+
+from backend.cameras.integrated_preview import IntegratedPreview, create_integrated_blueprint
+from backend.detection.detection_runtime import runtime as sample_preview_runtime
+integrated_preview = IntegratedPreview(ROOT, sample_preview_runtime)
+app.register_blueprint(create_integrated_blueprint(authorize_feed_configuration, ROOT,
+    lambda: app.config['CAMERA_FEEDS_DATABASE'], integrated_preview))
+
+
 def main():
     """Initialize the database and workers once, then serve the local API."""
     global ocr_worker

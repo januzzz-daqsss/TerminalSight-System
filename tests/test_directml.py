@@ -26,3 +26,9 @@ class DirectMLPostprocessingTests(unittest.TestCase):
         self.assertEqual([d['vehicle_type'] for d in detections], ['Bus', 'UV Express'])
         for detection in detections:
             self.assertEqual(detection['bbox'], [50, 25, 150, 75])
+            self.assertEqual(set(detection), {'bbox', 'vehicle_type'})
+        details = adapter.predict_details(frame)
+        self.assertEqual([item['class_name'] for item in details], ['bus', 'uv'])
+        self.assertEqual([item['class_id'] for item in details], [0, 1])
+        self.assertAlmostEqual(details[0]['confidence'], .9, places=5)
+        self.assertAlmostEqual(details[1]['confidence'], .95, places=5)

@@ -171,7 +171,7 @@ function TerminalApp({ hostedLogout, demoVisitor = false }: { hostedLogout?: () 
                 <main className="flex-1 overflow-y-auto print:overflow-visible print:p-0 p-5 space-y-5">
                     {activeTab === "dashboard" && <DashboardView bays={bays} focusedBay={focusTarget?.target.kind === "bay" ? focusTarget.target.id : undefined} />}
                     {activeTab === "analytics" && <AnalyticsView />}
-                    {activeTab === "camera" && <CameraZonesView health={notifications.system.cameras} localOnline={notifications.system.local === "Online"} focusedCamera={focusTarget?.target.kind === "camera" ? focusTarget.target.id : undefined} />}
+                    {activeTab === "camera" && <CameraZonesView canConfigure={access.canOperateTerminal} health={notifications.system.cameras} localOnline={notifications.system.local === "Online"} focusedCamera={focusTarget?.target.kind === "camera" ? focusTarget.target.id : undefined} />}
                     {activeTab === "violations" && <ViolationLogsView />}
                     {activeTab === "settings" && (DEMO_MODE ? <><p className="text-sm font-semibold text-amber-800">Settings are read-only in this hosted demonstration.</p><fieldset disabled className="min-w-0"><SettingsView /></fieldset></> : <SettingsView />)}
                 </main>

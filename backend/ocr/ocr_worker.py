@@ -46,7 +46,7 @@ def draw_sign_region(frame, detection, config, held=False):
     if bounds is None:
         return
     left, top, right, bottom = bounds
-    color = (0, 190, 255) if held else (255, 220, 0)
+    color = (11, 158, 245) if held else (212, 182, 6)  # #f59e0b / #06b6d4, BGR
     label = 'OCR AREA - HOLD' if held else 'OCR SCAN AREA'
     cv2.rectangle(frame, (left, top), (right - 1, bottom - 1), color, 3)
     font, scale, thickness = cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2
