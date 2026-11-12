@@ -11,6 +11,15 @@ before(async () => {
 });
 after(async () => { await server?.close(); });
 
+test('monitor button eligibility uses validated server associations for all three recordings', () => {
+    for (const videoId of ['sample-CCTV/Bays 1-2.mp4', 'sample-CCTV/Bays 2-5.mp4', 'sample-CCTV/Bays 6-10.mp4']) {
+        const feed = { ...api.emptyFeed('sample'), id: 'fixture', videoId, roiStatus: 'valid', integratedAiCompatible: true };
+        assert.equal(api.canMonitorRecording(feed), true);
+        for (const change of [{ roiStatus: 'invalid' }, { roiStatus: 'none' }, { integratedAiCompatible: false },
+            { integratedAiCompatible: undefined }, { kind: 'live' }]) assert.equal(api.canMonitorRecording({ ...feed, ...change }), false);
+    }
+});
+
 test('feed requests require a local token and never store feed configuration', async t => {
     const previousFetch = globalThis.fetch;
     const previousStorage = globalThis.sessionStorage;

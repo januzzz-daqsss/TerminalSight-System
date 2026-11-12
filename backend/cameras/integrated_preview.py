@@ -15,6 +15,7 @@ import cv2
 from flask import Blueprint, Response, jsonify, request
 from backend.detection.roi_config import load_roi
 from backend.detection.detector import assign_detections
+from backend.cameras.sample_ai import MAPPINGS
 
 PILOT = 'sample-CCTV/Bays 1-2.mp4'
 FRESH_SECONDS = 2.0
@@ -112,8 +113,9 @@ class IntegratedPreview:
         self.session = None
 
     def start(self, owner, video_id, roi_id):
-        if video_id != PILOT or not isinstance(roi_id, str) or Path(roi_id).name != roi_id or '/' in roi_id or '\\' in roi_id:
-            raise ValueError('This checkpoint supports only Bays 1-2 with a selected ROI JSON.')
+        if not isinstance(video_id, str) or video_id not in MAPPINGS or not isinstance(roi_id, str) or Path(roi_id).name != roi_id or '/' in roi_id or '\\' in roi_id:
+            raise ValueError('Choose an approved recording with a selected ROI JSON.')
+        _, expected_bays, direction = MAPPINGS[video_id]
         with self.lock:
             if self.session and self.session.owner != owner and not self.session.stop.is_set():
                 raise RuntimeError('Another local administrator owns the active preview.')
@@ -130,8 +132,8 @@ class IntegratedPreview:
                 if not ok or frame is None:
                     raise ValueError('Recording cannot be decoded.')
                 roi = load_roi(self.root / 'config/roi' / roi_id, video, int(frame.shape[1]), int(frame.shape[0]), root=self.root)
-                if set(roi.polygons) != {'Bay_1', 'Bay_2'}:
-                    raise ValueError('The pilot mapping must contain Bays 1 and 2.')
+                if set(roi.polygons) != set(expected_bays) or any(value != direction for value in roi.directions.values()):
+                    raise ValueError('ROI bay assignments do not match the approved recording.')
                 session = PreviewSession(owner, cap, roi, frame, fps, int(count))
             except Exception:
                 cap.release()
@@ -359,12 +361,13 @@ def create_integrated_blueprint(authorize, root, feed_database, manager):
             if not row:
                 raise LookupError()
             feed = json.loads(row[0])
-            if feed['kind'] != 'sample' or feed['videoId'] != PILOT:
-                raise ValueError('Pilot only.')
+            if feed['kind'] != 'sample' or feed['videoId'] not in MAPPINGS:
+                raise ValueError('Choose an approved sample recording.')
+            relative, expected_bays, direction = MAPPINGS[feed['videoId']]
             # Omitted ROI retains the reviewed pre-2A association; empty disables mapping.
-            roi_id = feed.get('roiId', 'bays-1-2.json')
-            if 'roiId' in feed and (feed['direction'] != 'northbound' or sorted(feed['bays']) != [1, 2]):
-                raise ValueError('Feed labels differ from the pilot mapping.')
+            roi_id = feed.get('roiId', Path(relative).name)
+            if 'roiId' in feed and (feed['direction'] != direction or sorted(feed['bays']) != sorted(int(bay[4:]) for bay in expected_bays)):
+                raise ValueError('Feed labels differ from the recording mapping.')
             result = manager.start(owner(), feed['videoId'], roi_id)
             return jsonify(result), 201
         except (OSError, sqlite3.Error):

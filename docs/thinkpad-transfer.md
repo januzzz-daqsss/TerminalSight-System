@@ -64,7 +64,7 @@ including metadata and class names. Their large weights/AMD exports are ignored:
 - `trained_models/fasterrcnn_resnet50_fpn/`: `best.pth` and `AMD/best.onnx`.
 - `trained_models/ssd300_vgg16/`: `best.pth` and `AMD/best.onnx`.
 
-The three schema-1 ROI JSON files currently exist but remain **untracked**:
+The three schema-1 ROI JSON files are tracked in this branch:
 
 | ROI JSON | Associated recording | Bays |
 | --- | --- | --- |
@@ -75,7 +75,9 @@ The three schema-1 ROI JSON files currently exist but remain **untracked**:
 Copy them unchanged. Their relative recording paths, dimensions and bay directions
 are validated; do not rename recordings without preparing a matching mapping.
 Add/Edit Feed selects existing ROI JSON; no remapping is necessary for these files.
-Only the Bays 1–2 recording is enabled for integrated AI in Checkpoint 2B.
+Integrated AI now supports all three mapped recordings above, one selected
+recording at a time. Transfer updated backend and frontend source together and
+restart both services; an old backend does not advertise the new eligibility flag.
 
 ## Private state and secrets — never add to a commit
 
@@ -177,6 +179,9 @@ Do not expose Flask publicly or change LAN/network access for this checkpoint.
 4. Add or edit Bays 1–2, choose `bays-1-2.json`, save, then click Monitor recording.
    AI starts automatically; check boxes, occupancy colors and the separate AI rate.
 5. Test pause, seek, resume, restart, loop, fullscreen, Stop and leaving the page.
+   Repeat for Bays 2–5 (actual Bays 3–5) and Bays 6–10; selecting another monitored
+   recording must stop the previous AI session. If a button is absent, select its
+   correct ROI through Edit Feed and refresh after restarting the updated backend.
 6. Confirm other ordinary recordings still play and both public display routes
    remain accessible. Verify hosted demo isolation separately using the demo build.
 7. Rehearse with network disconnected after installation. SMTP email and hosted
@@ -185,4 +190,5 @@ Do not expose Flask publicly or change LAN/network access for this checkpoint.
 The desktop CPU smoke check produced 75 JPEGs in five seconds and 3.8 successful
 AI updates/second. This is backend output, not browser-delivered FPS, and does not
 predict ThinkPad/GPU performance. Do not present smoothness or accuracy as verified
-until the laptop browser rehearsal passes. No multi-camera AI or pilot OCR is enabled.
+until the laptop browser rehearsal passes. No simultaneous sample-camera AI or
+sample OCR is enabled.

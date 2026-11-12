@@ -57,17 +57,17 @@ def describe_feed(root, feed):
     original = MAPPINGS.get(feed['videoId'])
     roi_id = feed.get('roiId', Path(original[0]).name if original else '')
     if not roi_id:
-        return {**feed, 'roiStatus': 'none', 'roiMapping': None, 'legacyAiCompatible': False}
+        return {**feed, 'roiStatus': 'none', 'roiMapping': None, 'legacyAiCompatible': False, 'integratedAiCompatible': False}
     try:
         selected = mapping(root, feed['videoId'], roi_id)
         if 'roiId' in feed:
             validate_labels(feed, selected)
-        legacy = bool(original and roi_id == Path(original[0]).name
-                      and {bay['id'] for bay in selected['roi']['polygons']} == set(original[1])
+        compatible = bool(original and {bay['id'] for bay in selected['roi']['polygons']} == set(original[1])
                       and selected['direction'] == original[2])
-        return {**feed, 'roiStatus': 'valid', 'roiMapping': selected, 'legacyAiCompatible': legacy}
+        legacy = bool(compatible and roi_id == Path(original[0]).name)
+        return {**feed, 'roiStatus': 'valid', 'roiMapping': selected, 'legacyAiCompatible': legacy, 'integratedAiCompatible': compatible}
     except (ValueError, OSError, TypeError, KeyError, cv2.error):
-        return {**feed, 'roiStatus': 'invalid', 'roiMapping': None, 'legacyAiCompatible': False}
+        return {**feed, 'roiStatus': 'invalid', 'roiMapping': None, 'legacyAiCompatible': False, 'integratedAiCompatible': False}
 
 
 def validate_labels(feed, selected):

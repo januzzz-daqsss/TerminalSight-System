@@ -1,5 +1,39 @@
 # Camera Zones feed configurations
 
+## Current integrated-monitoring coverage
+
+The pilot-only restriction described in the historical checkpoints below has been
+extended to all three reviewed recordings. **Only one is AI-monitored at a time.**
+
+| Recording | Default ROI | Actual bays |
+| --- | --- | --- |
+| `sample-CCTV/Bays 1-2.mp4` | `config/roi/bays-1-2.json` | 1, 2 |
+| `sample-CCTV/Bays 2-5.mp4` | `config/roi/bays-2-5.json` | 3, 4, 5 |
+| `sample-CCTV/Bays 6-10.mp4` | `config/roi/bays-6-10.json` | 6, 7, 8, 9, 10 |
+
+The authenticated feed response advertises `integratedAiCompatible` only when the
+validated mapping matches the recording's explicit bay set and direction. The UI
+uses that flag to show Monitor recording; the start endpoint independently checks
+the saved feed and reloads its ROI against the decoded dimensions. Compatible
+custom JSON filenames remain supported. No bay IDs are inferred from filenames.
+Old feeds without `roiId` retain the recording-specific default association; an
+explicit empty `roiId` remains playback-only. Choose the mapping in Edit Feed if
+the button is absent. Bays 2–5 correctly uses Bays 3–5, not Bay 2.
+
+Selecting another feed stops the previous capture before starting the next. The
+same executor, shared YOLO runtime, source-clock pacing, generation invalidation,
+IoA 0.20 assignment, expiry rules and playback controls remain in use. CPU-only
+YOLO operation is supported; no new dependency, OCR or parallel sample inference
+is introduced. Original operational workers and all operational state are unchanged.
+
+For the ThinkPad, transfer this updated source version, all three recordings and
+their JSON files together, restart Flask and Vite, then refresh Camera Zones.
+Select YOLOv8 / CPU and test each feed in turn, including pause, seek, restart,
+fullscreen and switching. Other cards remain ordinary playback. Laptop performance
+and browser smoothness require local verification; desktop checks do not establish them.
+
+## Existing feed configuration behavior
+
 Camera Zones has **LIVE FEED** and **SAMPLE DEMONSTRATION** modes. Only signed-in
 local administrators can read or change saved configurations. Hosted administrators
 and anonymous visitors receive a read-only layout with no local feed list, camera

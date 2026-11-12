@@ -7,7 +7,11 @@ export type FeedDraft = {
     address: string; transport: 'tcp' | 'udp'; videoId: string; roiId?: string;
 };
 export type RoiMapping = { id: string; bays: number[]; direction: FeedDraft['direction']; roi: RoiOverlay; warnings: string[] };
-export type Feed = FeedDraft & { id: string; roiStatus?: 'valid' | 'invalid' | 'none'; roiMapping?: RoiMapping | null; legacyAiCompatible?: boolean };
+export type Feed = FeedDraft & { id: string; roiStatus?: 'valid' | 'invalid' | 'none'; roiMapping?: RoiMapping | null; legacyAiCompatible?: boolean; integratedAiCompatible?: boolean };
+// Presentation eligibility only; the authenticated backend revalidates every start.
+export function canMonitorRecording(feed: Feed) {
+    return feed.kind === 'sample' && feed.roiStatus === 'valid' && feed.integratedAiCompatible === true;
+}
 export type SampleVideo = { id: string; filename: string; directory: string; url: string; preview: boolean };
 export type LegacyDisplay = { id: number; name: string; direction: FeedDraft['direction']; bays: number[]; hidden: boolean };
 export const defaultLegacyDisplays: LegacyDisplay[] = [

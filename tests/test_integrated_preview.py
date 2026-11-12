@@ -8,11 +8,13 @@ import tempfile
 import threading
 import time
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import cv2
 import numpy as np
 from flask import Flask, request
 from backend.cameras.integrated_preview import IntegratedPreview, create_integrated_blueprint, freshness, render_overlay, PILOT
+from backend.cameras.sample_ai import MAPPINGS
+from backend.cameras.roi_catalog import describe_feed
 
 
 class Capture:
@@ -69,14 +71,27 @@ class IntegratedTests(unittest.TestCase):
         with closing(sqlite3.connect(self.database)) as conn, conn:
             conn.execute('CREATE TABLE feeds (id TEXT PRIMARY KEY, configuration TEXT)')
             conn.execute('INSERT INTO feeds VALUES (?, ?)', ('pilot', json.dumps(dict(kind='sample', videoId=PILOT, direction='northbound', bays=[1, 2], roiId='bays-1-2.json'))))
+            self.records = {PILOT: 'pilot'}
+            for index, (video_id, (relative, bays, direction)) in enumerate(MAPPINGS.items()):
+                if video_id == PILOT:
+                    continue
+                (self.root / 'public' / video_id).write_bytes(b'fixture')
+                document = {**self.document, 'source_video': 'public/' + video_id, 'bays': [
+                    dict(id=bay, direction=direction, points=[[0, 0], [.4, 0], [.4, 1], [0, 1]])
+                    for bay in reversed(bays)]}
+                (self.root / relative).write_text(json.dumps(document))
+                identifier = f'mapped-{index}'
+                self.records[video_id] = identifier
+                conn.execute('INSERT INTO feeds VALUES (?, ?)', (identifier, json.dumps(dict(kind='sample', videoId=video_id,
+                    direction=direction, bays=[int(bay[4:]) for bay in bays], roiId=Path(relative).name))))
         app = Flask('integrated-test')
         app.register_blueprint(create_integrated_blueprint(
             lambda: None if request.headers.get('Authorization') in ('Bearer local', 'Bearer other') else ({'message': 'Denied'}, 401),
             self.root, lambda: self.database, self.manager))
         self.client, self.headers = app.test_client(), {'Authorization': 'Bearer local'}
 
-    def start(self):
-        response = self.client.post('/api/sample-preview', headers=self.headers, json={'feedId': 'pilot'})
+    def start(self, feed_id='pilot'):
+        response = self.client.post('/api/sample-preview', headers=self.headers, json={'feedId': feed_id})
         self.assertEqual(response.status_code, 201, response.text)
         return response.json['id']
 
@@ -113,7 +128,7 @@ class IntegratedTests(unittest.TestCase):
         s = self.manager.session
         wait_for(lambda: s.position >= 3)
         self.assertIsNone(s.result)  # Playback advances while inference is blocked.
-        second = self.start()
+        second = self.start(self.records['sample-CCTV/Bays 6-10.mp4'])
         self.assertNotEqual(first, second)
         self.assertTrue(self.captures[0].closed)
         self.assertFalse(s.thread.is_alive())
@@ -187,7 +202,60 @@ class IntegratedTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertTrue(self.captures[0].closed)
         self.assertIsNone(self.manager.session)
-        with self.assertRaises(ValueError): self.manager.start('x', 'sample-CCTV/Bays 6-10.mp4', 'bays-6-10.json')
+        with self.assertRaises(ValueError): self.manager.start('x', 'sample-CCTV/Bays 1-3.mp4', 'bays-1-2.json')
+
+    def test_all_recordings_cpu_assignment_and_single_session_switching(self):
+        self.runtime.predict_diagnostic.return_value = (self.prediction[0], {'model': 'yolov8', 'device': 'cpu'})
+        before = self.database.read_bytes()
+        previous = None
+        for video_id, (relative, bays, direction) in MAPPINGS.items():
+            with self.subTest(video=video_id):
+                identifier = self.start(self.records[video_id])
+                session = self.manager.session
+                if previous:
+                    self.assertTrue(previous.stop.is_set())
+                    self.assertFalse(previous.thread.is_alive())
+                    self.assertTrue(previous.cap.closed)
+                wait_for(lambda: session.result is not None)
+                self.assertEqual(set(session.result['states']), set(bays))
+                self.assertEqual(list(session.roi.polygons), [bay['id'] for bay in json.loads((self.root / relative).read_text())['bays']])
+                self.assertEqual(session.selection['device'], 'cpu')
+                self.assertEqual(sum(not cap.closed for cap in self.captures), 1)
+                feed = dict(kind='sample', videoId=video_id, roiId=Path(relative).name,
+                            direction=direction, bays=[int(bay[4:]) for bay in bays])
+                with patch('backend.cameras.roi_catalog._dimensions', return_value=(100, 100)):
+                    self.assertTrue(describe_feed(self.root, feed)['integratedAiCompatible'])
+                    self.assertFalse(describe_feed(self.root, {**feed, 'roiId': ''})['integratedAiCompatible'])
+                previous = session
+        self.manager.stop(previous.owner, identifier)
+        self.assertEqual(self.database.read_bytes(), before)
+        self.runtime.switch.assert_not_called()
+        self.runtime.initialize.assert_not_called()
+
+    def test_recording_associations_defaults_and_mismatches(self):
+        for video_id, (relative, bays, direction) in MAPPINGS.items():
+            identifier = self.records[video_id]
+            original = dict(kind='sample', videoId=video_id, direction=direction, bays=[int(b[4:]) for b in bays])
+            # Old saved feeds without roiId use their explicit recording-specific default.
+            with closing(sqlite3.connect(self.database)) as conn, conn:
+                conn.execute('UPDATE feeds SET configuration=? WHERE id=?', (json.dumps(original), identifier))
+            session_id = self.start(identifier)
+            self.assertEqual(set(self.manager.session.roi.polygons), set(bays))
+            self.manager.stop(self.manager.session.owner, session_id)
+            for change in ({'roiId': ''}, {'roiId': '../bays-1-2.json'},
+                           {'roiId': Path(relative).name, 'direction': 'southbound' if direction == 'northbound' else 'northbound'},
+                           {'roiId': Path(relative).name, 'bays': [10] if direction == 'northbound' else [1]}):
+                with closing(sqlite3.connect(self.database)) as conn, conn:
+                    conn.execute('UPDATE feeds SET configuration=? WHERE id=?', (json.dumps({**original, **change}), identifier))
+                response = self.client.post('/api/sample-preview', headers=self.headers, json={'feedId': identifier})
+                self.assertEqual(response.status_code, 400, response.text)
+        with self.assertRaises(ValueError):
+            self.manager.start('owner', 'sample-CCTV/Bays 2-5.mp4', 'bays-6-10.json')
+        data = json.loads((self.root / 'config/roi/bays-2-5.json').read_text())
+        data['bays'][0]['id'] = 'Bay_2'
+        (self.root / 'config/roi/bays-2-5.json').write_text(json.dumps(data))
+        with self.assertRaises(ValueError):
+            self.manager.start('owner', 'sample-CCTV/Bays 2-5.mp4', 'bays-2-5.json')
 
     def test_missing_authenticated_heartbeat_expires_session(self):
         self.start()

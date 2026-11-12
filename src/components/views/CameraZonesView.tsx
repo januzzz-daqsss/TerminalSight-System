@@ -2,13 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Plus, Pencil, Trash2, Video, X } from 'lucide-react';
 import { DEMO_MODE } from '../../demo';
 import type { CameraHealth } from '../../notifications/model';
-import { defaultLegacyDisplays, legacyVideo, emptyFeed, feedRequest, type LegacyDisplay, type Feed, type FeedDraft, type FeedMode, type SampleVideo } from '../../cameras/feedApi';
+import { defaultLegacyDisplays, legacyVideo, emptyFeed, feedRequest, canMonitorRecording, type LegacyDisplay, type Feed, type FeedDraft, type FeedMode, type SampleVideo } from '../../cameras/feedApi';
 import { DetectionSettings } from '../ui/DetectionSettings';
 import { ProcessedSampleFeeds } from '../ui/ProcessedSampleFeeds';
 import { SampleCoverageNotice } from '../ui/SampleCoverageNotice';
 import { SamplePlayer } from '../ui/SamplePlayer';
 import { RoiMappingPicker } from '../ui/RoiMappingPicker';
-import { PILOT_VIDEO } from '../../cameras/synchronizedPreview';
 import { IntegratedSamplePreview } from '../ui/IntegratedSamplePreview';
 
 const inputClass = 'w-full mt-1 rounded-lg border border-slate-300 bg-white p-2.5 focus-visible:outline-2 focus-visible:outline-emerald-600';
@@ -174,10 +173,10 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
                                 : <SamplePlayer key={video.id} video={video} autoPlay loop label={feed.name} roi={feed.roiMapping?.roi} />
                                 : <p className="text-sm text-amber-700">Recording unavailable. Select another video or restore the original file.</p>}
                         {feed.kind === 'sample' && feed.roiStatus !== 'valid' && <p className="text-xs text-slate-500">{feed.roiStatus === 'invalid' ? 'Saved mapping is invalid or unavailable. Edit the feed to select a compatible mapping.' : 'No parking-bay mapping. Video playback only.'}</p>}
-                        {feed.kind === 'sample' && feed.roiStatus === 'valid' && feed.videoId !== PILOT_VIDEO && <p className="text-xs text-slate-500">ROI geometry loaded. AI integration for this mapping is pending.</p>}
+                        {feed.kind === 'sample' && feed.roiStatus === 'valid' && !canMonitorRecording(feed) && <p className="text-xs text-slate-500">ROI geometry loaded. AI integration for this mapping is pending.</p>}
                         <div className="flex flex-wrap gap-3 text-xs"><button type="button" className="rounded p-1 hover:bg-emerald-50 disabled:opacity-50" disabled={!editable || busy || loading || !!error} onClick={() => openEditor(feed)}><Pencil className="inline mr-1" size={14} />Edit</button>
                             <button type="button" className="rounded p-1 text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={!editable || busy || loading || !!error} onClick={() => { setRemovingLegacy(null); setRemoving(feed); setFormError(''); removal.current?.showModal(); }}><Trash2 className="inline mr-1" size={14} />Remove</button>
-                            {editable && video?.id === PILOT_VIDEO && feed.roiStatus === 'valid' && monitoringFeed !== feed.id && <button type="button" className="ml-auto rounded border border-emerald-300 px-2 py-1 text-emerald-800" onClick={() => setMonitoringFeed(feed.id)}>Monitor recording</button>}
+                            {editable && video && canMonitorRecording(feed) && monitoringFeed !== feed.id && <button type="button" className="ml-auto rounded border border-emerald-300 px-2 py-1 text-emerald-800" onClick={() => setMonitoringFeed(feed.id)}>Monitor recording</button>}
                         </div>
                     </div>
                 </article>;
