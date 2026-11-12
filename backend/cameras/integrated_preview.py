@@ -25,7 +25,7 @@ LEASE_SECONDS = 20.0
 
 def freshness(result, generation, seconds, now):
     valid = bool(result and result['generation'] == generation
-                 and 0 <= now - result['submitted'] <= FRESH_SECONDS
+                 and 0 <= now - result['submitted'] <= 20.0
                  and 0 <= seconds - result['seconds'] <= FRESH_SECONDS)
     boxes = valid and seconds - result['seconds'] <= BOX_SECONDS
     return valid, boxes
@@ -211,8 +211,9 @@ class IntegratedPreview:
                                 s.status = 'AI active'
                                 s.completions.append(time.monotonic())
                         except Exception:
-                            # A brief busy result does not clear a still-fresh observation.
-                            s.status = 'AI unavailable or busy; select YOLOv8 in AI Detection'
+                            import traceback
+                            traceback.print_exc()
+                            s.status = 'AI unavailable or busy; check Flask terminal'
                         future = None
                     if (time.monotonic() >= next_inference and future is None
                             and (self.future is None or self.future.done())):

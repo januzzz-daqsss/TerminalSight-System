@@ -195,11 +195,11 @@ class DetectionRuntime:
         Busy operational inference/switching wins. Native AMD failure is surfaced;
         the existing operational recovery path remains responsible for recovery.
         """
-        if self.change_lock.locked() or not self.lock.acquire(blocking=False):
+        if self.change_lock.locked() or not self.lock.acquire(timeout=5.0):
             raise RuntimeError('Detector is busy; diagnostic frame skipped.')
         try:
-            if self.adapter is None or self.loading or self.model != 'yolov8':
-                raise RuntimeError('Select and initialize YOLOv8 in AI Detection first.')
+            if self.adapter is None or self.loading:
+                raise RuntimeError('Select and initialize a detection model in AI Detection first.')
             return self.adapter.predict(frame, details=True), {'model': self.model, 'device': self.device}
         finally:
             self.lock.release()
