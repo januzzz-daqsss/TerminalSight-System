@@ -30,13 +30,15 @@ class WorkerRecoveryTests(unittest.TestCase):
         self.assertEqual(connection.send.call_args_list[1].args[0], ('ok', [{'confidence': .8, 'class_name': 'bus'}]))
         connection.close.assert_called_once()
     def test_native_worker_exit_does_not_kill_parent(self):
-        worker = ProcessAdapter('test', target=crash_on_frame, startup_timeout=10)
-        try:
-            with self.assertRaisesRegex(RuntimeError, 'stopped unexpectedly|exited'):
-                worker.predict(np.zeros((4, 4, 3), dtype=np.uint8))
-        finally:
-            worker.close()
-        self.assertFalse(worker.process.is_alive())
+        for label in ('AMD', 'Intel OpenVINO'):
+            with self.subTest(label=label):
+                worker = ProcessAdapter('test', target=crash_on_frame, startup_timeout=10, label=label)
+                try:
+                    with self.assertRaisesRegex(RuntimeError, 'stopped unexpectedly|exited'):
+                        worker.predict(np.zeros((4, 4, 3), dtype=np.uint8))
+                finally:
+                    worker.close()
+                self.assertFalse(worker.process.is_alive())
 
     def test_switch_releases_amd_before_load_and_recovers_on_cpu(self):
         events = []

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-type Choice = { id: string; label: string; available: boolean; amd_available?: boolean };
+type Choice = { id: string; label: string; available: boolean; amd_available?: boolean; intel_available?: boolean };
 type Status = { model: string; device: string; ready: boolean; loading: boolean; error: string | null; models: Choice[]; devices: Choice[] };
 
 export function DetectionSettings() {
@@ -31,7 +31,7 @@ export function DetectionSettings() {
             if (!response.ok) throw new Error(data.message || 'Detection settings unavailable.');
             if (!mounted.current) return;
             setStatus(data); setModel(data.model); setDevice(data.device);
-            if (save) setMessage('Detection updated for both camera feeds.');
+            if (save) setMessage('Detection updated for all operational camera feeds.');
         } catch (e) {
             if (mounted.current) setError(e instanceof Error ? e.message : 'Cannot reach backend.');
         } finally { if (mounted.current) setBusy(false); }
@@ -44,10 +44,10 @@ export function DetectionSettings() {
         <dialog ref={dialog} aria-labelledby="detection-title" onCancel={event => { if (busy) event.preventDefault(); }}
             className="m-auto w-[min(92vw,480px)] rounded-xl border border-slate-200 bg-white p-6 text-slate-800 shadow-xl backdrop:bg-slate-950/60">
             <h2 id="detection-title" className="text-lg font-bold">Detection algorithm</h2>
-            <p className="mt-2 text-sm text-slate-500">Applies to both camera feeds. Detection briefly pauses while switching. Video playback continues. If an AMD worker fails, detection recovers on CPU.</p>
+            <p className="mt-2 text-sm text-slate-500">Applies to all operational camera feeds. Detection briefly pauses while switching. Video playback continues. If an AMD or Intel worker fails, detection recovers on CPU.</p>
             {status && <p className="mt-3 text-sm">Active: {status.models.find(item => item.id === status.model)?.label} · {status.device.toUpperCase()}{!status.ready ? ' (not initialized)' : ''}</p>}
             <label className="block mt-4 text-sm font-semibold">Algorithm
-                <select value={model} onChange={e => { setModel(e.target.value); if (device === 'amd' && !status?.models.find(item => item.id === e.target.value)?.amd_available) setDevice('cpu'); }} disabled={busy || !status}
+                <select value={model} onChange={e => { setModel(e.target.value); const choice = status?.models.find(item => item.id === e.target.value); if ((device === 'amd' && !choice?.amd_available) || (device === 'intel' && !choice?.intel_available)) setDevice('cpu'); }} disabled={busy || !status}
                     className="mt-1 w-full rounded-lg border border-slate-300 p-2 bg-white disabled:opacity-60">
                     {status?.models.map(item => <option key={item.id} value={item.id} disabled={!item.available}>{item.label}{!item.available ? ' — weights missing' : ''}</option>)}
                 </select>
@@ -55,7 +55,7 @@ export function DetectionSettings() {
             <label className="block mt-4 text-sm font-semibold">Processing device
                 <select value={device} onChange={e => setDevice(e.target.value)} disabled={busy || !status}
                     className="mt-1 w-full rounded-lg border border-slate-300 p-2 bg-white disabled:opacity-60">
-                    {status?.devices.map(item => <option key={item.id} value={item.id} disabled={!item.available || (item.id === 'amd' && !status.models.find(choice => choice.id === model)?.amd_available)}>{item.label}{!item.available && ['cuda', 'amd'].includes(item.id) ? ' — unavailable' : ''}{item.id === 'amd' && !status.models.find(choice => choice.id === model)?.amd_available ? ' — model export missing' : ''}</option>)}
+                    {status?.devices.map(item => <option key={item.id} value={item.id} disabled={!item.available || (item.id === 'amd' && !status.models.find(choice => choice.id === model)?.amd_available) || (item.id === 'intel' && !status.models.find(choice => choice.id === model)?.intel_available)}>{item.label}{!item.available && ['cuda', 'amd', 'intel'].includes(item.id) ? ' — unavailable' : ''}{item.id === 'amd' && !status.models.find(choice => choice.id === model)?.amd_available ? ' — model export missing' : ''}{item.id === 'intel' && !status.models.find(choice => choice.id === model)?.intel_available ? ' — requires YOLOv8 ONNX' : ''}</option>)}
                 </select>
             </label>
             <p className="mt-2 text-xs text-slate-500">CPU works without a supported GPU. Faster R-CNN and SSD may process more slowly on CPU.</p>

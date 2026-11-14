@@ -1,0 +1,4 @@
+# Optional ThinkPad GPU dependencies; do not install automatically on the desktop.
+# Keep the existing ONNX Runtime distribution used by RapidOCR/DirectML.
+openvino==2026.4.0
+onnx==1.23.1

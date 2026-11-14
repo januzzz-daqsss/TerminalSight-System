@@ -31,7 +31,8 @@ Models: `yolov8`, `fasterrcnn_resnet50_fpn`, `ssd300_vgg16`.
 Devices: CPU and NVIDIA CUDA when available in the installed PyTorch runtime.
 AMD DirectML is supported for all three bundled ONNX exports on Windows. It uses
 the default graphics adapter (device 0, verified as RX 580 on this desktop).
-Intel selection remains unavailable. CPU is always
+Intel OpenVINO GPU is optional for YOLOv8 only; see [Intel setup](intel-gpu.md)
+for dependencies, GPU verification and remaining limitations. CPU is always
 available. A model must load and warm up successfully before activation.
 
 The selected model is loaded from local weights and warmed up before activation.

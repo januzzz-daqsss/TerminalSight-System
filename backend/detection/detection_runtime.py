@@ -9,6 +9,8 @@ import numpy as np
 import torch
 
 from backend.paths import CONFIG_DIR, MODELS_DIR
+from backend.detection.detection_devices import intel_status
+from backend.detection.detection_openvino import intel_weights_path
 MODELS = {'yolov8': 'YOLOv8', 'fasterrcnn_resnet50_fpn': 'Faster R-CNN (ResNet-50-FPN)',
           'ssd300_vgg16': 'SSD300 (VGG16)'}
 
@@ -31,12 +33,17 @@ def devices():
     return [{'id': 'cpu', 'label': 'CPU', 'available': True},
             {'id': 'cuda', 'label': 'NVIDIA CUDA', 'available': cuda},
             {'id': 'amd', 'label': 'AMD / DirectML — default GPU', 'available': directml},
-            {'id': 'intel', 'label': 'Intel GPU — runtime not integrated', 'available': False}]
+            {'id': 'intel', 'label': 'Intel GPU / OpenVINO (YOLOv8)', 'available': intel_status()['available']}]
 
 
 class Adapter:
     def __init__(self, name, device):
         self.name, self.device = name, device
+        if device == 'intel':
+            from backend.detection.detection_process import ProcessAdapter
+            from backend.detection.detection_openvino import intel_worker
+            self.directml = ProcessAdapter(name, target=intel_worker, label='Intel OpenVINO')
+            return
         if device == 'amd':
             from backend.detection.detection_process import ProcessAdapter
             self.directml = ProcessAdapter(name)
@@ -64,12 +71,12 @@ class Adapter:
                 raise ValueError('This adapter expects the trained v18 416x416 export.')
 
     def close(self):
-        if self.device == 'amd':
+        if self.device in ('amd', 'intel'):
             self.directml.close()
 
     @torch.inference_mode()
     def predict(self, frame, details=False):
-        if self.device == 'amd':
+        if self.device in ('amd', 'intel'):
             return self.directml.predict_details(frame) if details else self.directml.predict(frame)
         height, width = frame.shape[:2]
         output = []
@@ -111,14 +118,18 @@ class DetectionRuntime:
     def status(self):
         with self.lock:
             return {'model': self.model, 'device': self.device, 'ready': self.adapter is not None,
+                    'accelerator': getattr(getattr(self.adapter, 'directml', None), 'info', None),
                     'loading': self.loading, 'error': self.error,
                     'models': [{'id': name, 'label': label, 'available': weights_path(name).is_file(),
-                                'amd_available': amd_weights_path(name).is_file()}
+                                'amd_available': amd_weights_path(name).is_file(),
+                                'intel_available': name == 'yolov8' and intel_weights_path().is_file()}
                                for name, label in MODELS.items()], 'devices': devices()}
 
     def switch(self, model, device, persist=True):
         if model not in MODELS:
             raise ValueError('Unknown detection algorithm.')
+        if device == 'intel' and (model != 'yolov8' or not intel_weights_path().is_file()):
+            raise ValueError('Intel OpenVINO requires the local YOLOv8 ONNX export; other models are not enabled.')
         if device == 'amd' and not amd_weights_path(model).is_file():
             raise ValueError('AMD ONNX weights are missing for this model. Export and validate them first.')
         if not any(item['id'] == device and item['available'] for item in devices()):
@@ -131,10 +142,10 @@ class DetectionRuntime:
                 self.error = None
                 previous = self.adapter
                 previous_model, previous_device = self.model, self.device
-                released = previous is not None and previous_device == 'amd'
+                released = previous is not None and previous_device in ('amd', 'intel')
                 candidate = None
                 try:
-                    # Release the old DirectML process before constructing another.
+                    # Release the old GPU process before constructing another.
                     # Inference pauses; the independent preview keeps playing.
                     if released:
                         previous.close()
@@ -154,7 +165,7 @@ class DetectionRuntime:
                         # Recovery uses CPU so a damaged GPU context isn't retried.
                         self.adapter = self.factory(previous_model, 'cpu')
                         self.model, self.device = previous_model, 'cpu'
-                        self.error = 'AMD switch failed. Previous algorithm restored on CPU; restart before retrying AMD.'
+                        self.error = f'{previous_device.upper()} switch failed. Previous algorithm restored on CPU; restart before retrying GPU.'
                     else:
                         self.error = 'Could not load the selected model. Previous selection remains active.'
                     raise
@@ -180,13 +191,14 @@ class DetectionRuntime:
             try:
                 return self.adapter.predict(frame)
             except Exception:
-                if self.device != 'amd':
+                if self.device not in ('amd', 'intel'):
                     raise
-                logging.exception('AMD worker failed; continuing detection on CPU')
+                failed_device = self.device
+                logging.exception('%s worker failed; continuing detection on CPU', failed_device)
                 self.adapter.close()
                 self.adapter = self.factory(self.model, 'cpu')
                 self.device = 'cpu'
-                self.error = 'AMD worker failed. Detection is continuing on CPU.'
+                self.error = f'{failed_device.upper()} worker failed. Detection is continuing on CPU.'
                 return self.adapter.predict(frame)
 
     def predict_diagnostic(self, frame):

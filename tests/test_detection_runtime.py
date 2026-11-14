@@ -51,9 +51,10 @@ class DetectionRuntimeTests(unittest.TestCase):
 
     def test_rejects_unknown_and_unsupported_selections(self):
         runtime = DetectionRuntime(factory=FakeAdapter)
-        for name, device in [('fake', 'cpu'), ('yolov8', 'intel')]:
-            with self.assertRaises(ValueError):
-                runtime.switch(name, device)
+        with patch('backend.detection.detection_runtime.intel_status', return_value={'available': False}):
+            for name, device in [('fake', 'cpu'), ('yolov8', 'intel')]:
+                with self.assertRaises(ValueError):
+                    runtime.switch(name, device)
 
     def test_missing_amd_export_cannot_switch(self):
         with tempfile.TemporaryDirectory() as folder:
