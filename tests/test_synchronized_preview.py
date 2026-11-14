@@ -4,7 +4,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import cv2
 import numpy as np
@@ -126,21 +126,14 @@ class SynchronizedPreviewTests(unittest.TestCase):
         result, selection = runtime.predict_diagnostic('frame')
         self.assertEqual(selection, {'model': 'yolov8', 'device': 'amd'})
         runtime.adapter.predict.assert_called_once_with('frame', details=True)
-        entered, release = threading.Event(), threading.Event()
-        def hold():
-            with runtime.lock:
-                entered.set()
-                release.wait(5)
-        thread = threading.Thread(target=hold)
-        thread.start(); entered.wait(5)
-        try:
+        with patch.object(runtime, 'lock') as lock:
+            lock.acquire.return_value = False
             with self.assertRaises(RuntimeError):
                 runtime.predict_diagnostic('busy')
-        finally:
-            release.set(); thread.join()
+            lock.acquire.assert_called_once_with(timeout=5.0)
         runtime.model = 'ssd300_vgg16'
-        with self.assertRaises(RuntimeError):
-            runtime.predict_diagnostic('wrong-model')
+        _, selected = runtime.predict_diagnostic('other-selected-model')
+        self.assertEqual(selected['model'], 'ssd300_vgg16')
         self.assertFalse(runtime.config_path.exists())
 
 

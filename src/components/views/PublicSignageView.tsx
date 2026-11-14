@@ -10,7 +10,7 @@ import { SampleCoverageNotice } from "../ui/SampleCoverageNotice";
 // Dedicated full-screen view for the external terminal display monitors.
 
 export function PublicSignageView({ bays, now, live }: { bays: Bay[]; now: Date; live: boolean }) {
-    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay.id));
+    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay));
     const overstayingMsgs = monitoredBays
         .filter((b) => b.status === "Overstaying")
         .map(

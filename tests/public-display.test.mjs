@@ -31,7 +31,7 @@ test('passenger list renders recognized, detecting, unknown and stale-data state
         { id: 6, status: 'Available', route: 'Old route', routeDetails: ['Stale destination'] },
     ];
     // Render each state independently within the current sample-camera coverage.
-    const html = bays.map(bay => renderToStaticMarkup(createElement(PublicView, { bays: [bay], now: new Date(0), live: false }))).join('');
+    const html = bays.map(bay => renderToStaticMarkup(createElement(PublicView, { bays: [{ ...bay, monitored: true }], now: new Date(0), live: false }))).join('');
     for (const text of ['Panabo → Davao', 'Route Detecting...', 'Route Unknown', 'BOARDING', 'DEPARTING', 'DELAYED', 'AVAILABLE', 'Live updates unavailable']) assert.ok(html.includes(text), text);
     assert.ok(!html.includes('ocrDebug'));
     assert.ok(html.includes('· MA-A · NCCC · SM CITY · BUHANGIN'));
@@ -39,7 +39,7 @@ test('passenger list renders recognized, detecting, unknown and stale-data state
 });
 test('driver display keeps bay-card/map presentation and adds route and timer', async () => {
     const { PublicSignageView } = await server.ssrLoadModule('/src/components/views/PublicSignageView.tsx');
-    const html = renderToStaticMarkup(createElement(PublicSignageView, { bays: [{ id: 6, type: 'Southbound', status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', timeRemaining: 120 }], now: new Date(0), live: true }));
+    const html = renderToStaticMarkup(createElement(PublicSignageView, { bays: [{ monitored: true, id: 6, type: 'Southbound', status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', timeRemaining: 120 }], now: new Date(0), live: true }));
     for (const text of ['ROAD LANE', 'Panabo → Davao', '02:00', 'BOARDING']) assert.ok(html.includes(text), text);
 });
 
@@ -48,7 +48,7 @@ test('sample coverage never presents unmonitored bays as available or counts the
     const { PublicSignageView } = await server.ssrLoadModule('/src/components/views/PublicSignageView.tsx');
     const { DashboardView } = await server.ssrLoadModule('/src/components/views/DashboardView.tsx');
     const bays = Array.from({ length: 10 }, (_, index) => ({
-        id: index + 1, type: index < 5 ? 'Northbound' : 'Southbound', status: 'Available', timeRemaining: 0,
+        monitored: [0, 5].includes(index), id: index + 1, type: index < 5 ? 'Northbound' : 'Southbound', status: 'Available', timeRemaining: 0,
     }));
     bays[0] = { ...bays[0], status: 'Occupied', vehicleType: 'Bus', route: 'Panabo - Davao', timeRemaining: 120 };
     const before = JSON.stringify(bays);
@@ -82,4 +82,20 @@ test('disconnected sample signage does not issue instructions from retained data
     assert.ok(html.includes('Bay information is not current.'));
     assert.ok(!html.includes('IS OPEN FOR'));
     assert.ok(!html.includes('PLEASE DEPART IMMEDIATELY'));
+});
+
+test('coverage follows healthy workers for all ten bays and fails closed without metadata', async () => {
+    const { PublicView } = await server.ssrLoadModule('/src/components/views/PublicView.tsx');
+    const { DashboardView } = await server.ssrLoadModule('/src/components/views/DashboardView.tsx');
+    const bays = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, monitored: true,
+        type: i < 5 ? 'Northbound' : 'Southbound', status: 'Available' }));
+    const html = renderToStaticMarkup(createElement(PublicView, { bays, now: new Date(0), live: true }));
+    assert.equal((html.match(/NOT MONITORED/g) || []).length, 0);
+    assert.equal((html.match(/>AVAILABLE</g) || []).length, 10);
+    bays[9].monitored = false;
+    const dashboard = renderToStaticMarkup(createElement(DashboardView, { bays }));
+    assert.equal((dashboard.match(/>Not monitored</g) || []).length, 1);
+    assert.match(dashboard, /Available Slots<\/span><span[^>]*>9<\/span>/);
+    const unknown = renderToStaticMarkup(createElement(PublicView, { bays: [{ id: 1, status: 'Available' }], now: new Date(0), live: true }));
+    assert.ok(unknown.includes('NOT MONITORED'));
 });

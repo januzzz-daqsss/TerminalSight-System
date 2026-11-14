@@ -254,7 +254,7 @@ class OccupancySessionTests(unittest.TestCase):
         with patch('backend.ocr.ocr_worker.crop_sign', return_value=object()) as crop:
             for index in range(1, 5):
                 worker.submit(f'Bay_{index}', 'session', None, self.detection)
-            self.assertEqual(len(worker.pending), 2)
+            self.assertEqual(len(worker.pending), 4)
             worker.submit('Bay_4', 'session', None, self.detection)
             self.assertEqual(crop.call_count, 4)
 

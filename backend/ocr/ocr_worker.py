@@ -2,6 +2,7 @@
 from collections import OrderedDict
 from pathlib import Path
 import logging
+import os
 import threading
 import time
 
@@ -39,7 +40,7 @@ def sign_bounds(frame_shape, detection, config):
     return left, top, right, bottom
 
 
-def draw_sign_region(frame, detection, config, held=False):
+def draw_sign_region(frame, detection, config, held=False, *, held_color=None):
     """Show the scan region; a held box is the last known position during occlusion."""
     import cv2
     bounds = sign_bounds(frame.shape, detection, config)
@@ -47,6 +48,8 @@ def draw_sign_region(frame, detection, config, held=False):
         return
     left, top, right, bottom = bounds
     color = (11, 158, 245) if held else (212, 182, 6)  # #f59e0b / #06b6d4, BGR
+    if held and held_color is not None:
+        color = held_color
     label = 'OCR AREA - HOLD' if held else 'OCR SCAN AREA'
     cv2.rectangle(frame, (left, top), (right - 1, bottom - 1), color, 3)
     font, scale, thickness = cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2
@@ -101,6 +104,10 @@ class OCRWorker:
         self.occupancy = occupancy
         self.pending = OrderedDict()
         self.last_sample = {}
+        from backend.ocr.led import LEDReader
+        self.led = LEDReader()
+        self.led_enabled = os.environ.get('TERMINALSIGHT_LED_OCR') == '1'
+        self.vehicle_types = {}
         self.condition = threading.Condition()
         self.state = 'Starting'
         self.error = None
@@ -118,6 +125,8 @@ class OCRWorker:
         self.thread.join(timeout=2)
 
     def submit(self, bay, session_id, frame, detection):
+        if bay not in {f'Bay_{number}' for number in range(1, 11)}:
+            return
         now = time.monotonic()
         with self.condition:
             if self.stopping or self.state == 'Failed':
@@ -131,13 +140,26 @@ class OCRWorker:
             return
         with self.condition:
             self.pending[bay] = (session_id, image)
-            # One pending job per bay, maximum two: discard obsolete work instead of blocking YOLO.
-            while len(self.pending) > 2:
-                self.pending.popitem(last=False)
+            self.vehicle_types[bay] = (session_id, detection.get('vehicle_type'))
+            # Replacing a crop preserves FIFO position. At most ten pending crops,
+            # one per physical bay, so busy bays cannot evict/starve quieter bays.
             self.condition.notify()
 
+    def discard(self, bays):
+        with self.condition:
+            for bay in bays:
+                self.pending.pop(bay, None)
+                self.last_sample.pop(bay, None)
+                self.vehicle_types.pop(bay, None)
+                self.led.discard([bay])
+
+    def diagnostics(self):
+        with self.condition:
+            return self.led.diagnostics()
+
     def health(self):
-        return {'state': self.state, 'message': self.error}
+        with self.condition:
+            return {'state': self.state, 'message': self.error, 'pending_bays': len(self.pending)}
 
     def _run(self):
         try:
@@ -156,8 +178,20 @@ class OCRWorker:
                 if self.stopping:
                     return
                 bay, (session_id, image) = self.pending.popitem(last=False)
+                vehicle_type = self.vehicle_types.get(bay)
             try:
                 text, score, lines = read_sign(engine, image, self.occupancy.config['minimum_ocr_score'], include_lines=True)
+                if self.led_enabled and vehicle_type == (session_id, 'Bus'):
+                    # Static OCR remains first. One combined observation prevents
+                    # two preprocessing variants from manufacturing temporal support.
+                    try:
+                        led_text, led_score = self.led.read(bay, session_id, image,
+                            lambda crop: read_sign(engine, crop, self.occupancy.config['minimum_ocr_score']))
+                        if led_text:
+                            score = min(score, led_score) if text else led_score
+                            text = ' '.join(part for part in (text, led_text) if part)
+                    except Exception:
+                        LOGGER.exception('LED enhancement failed; static OCR retained')
                 self.occupancy.apply_ocr(bay, session_id, text, score, lines=lines)
                 failures = 0
             except Exception as error:

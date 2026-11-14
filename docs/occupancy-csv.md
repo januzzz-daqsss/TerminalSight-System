@@ -68,9 +68,10 @@ retain their names; `slot_number` is appended. Null values become empty cells, R
 quoting uses CRLF, and dangerous spreadsheet text is prefixed with an apostrophe.
 The legacy `/api/export/csv` route shares the same authorization and serializer.
 
-Existing Analytics charts and violation CSV remain mock data. Existing detector code
-does not yet insert occupancy records, so real history requires a separate logging
-integration. The existing email OTP feature is unrelated and still needs WAN access.
+Existing Analytics charts and violation CSV remain mock data. Operational camera sessions now insert observed arrivals and confirmed departures
+into Occupancy_Log. Loop/stop/source-change interruptions retain null departure and
+duration; see `operational-multibay.md`. Recorded CCTV observations are not evidence
+of real-time terminal visits. The existing email OTP feature is unrelated and still needs WAN access.
 
 The frontend labels Analytics and Violation Logs as sample data, including printed
 reports. Their client-generated CSV filenames contain `SAMPLE` and their first

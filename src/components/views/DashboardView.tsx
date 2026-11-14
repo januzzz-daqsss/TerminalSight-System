@@ -195,7 +195,7 @@ export function StatsBar({ bays }: { bays: Bay[] }) {
 }
 
 export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: number }) {
-    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay.id));
+    const monitoredBays = bays.filter(bay => isSampleMonitoredBay(bay));
     const handleExportCSV = async () => {
         if (DEMO_MODE) return;
         try {
@@ -228,7 +228,7 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
             <SampleCoverageNotice />
             {/* Stats bar */}
             <div className="space-y-2">
-                <p className="text-sm font-semibold text-slate-600">Monitored bays only · Bay 1 and Bay 6</p>
+                <p className="text-sm font-semibold text-slate-600">Monitored bays only · healthy operational cameras</p>
                 <StatsBar bays={monitoredBays} />
             </div>
 
@@ -245,7 +245,7 @@ export function DashboardView({ bays, focusedBay }: { bays: Bay[]; focusedBay?: 
                                     2D Spatial Terminal Map
                                 </h2>
                                 <p className="text-slate-400 text-xs font-medium mt-1">
-                                    {DEMO_MODE ? "Illustrative snapshot ? not live camera results" : "Sample-camera results for Bay 1 and Bay 6"}
+                                    {DEMO_MODE ? "Illustrative snapshot ? not live camera results" : "Operational results from configured recordings"}
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">

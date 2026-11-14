@@ -2,11 +2,14 @@
 import threading
 import time
 import uuid
+import logging
 from backend.ocr.route_recognition import TemporalRoute, load_config
 
 
 class OccupancyState:
-    def __init__(self, config=None, loading_seconds=900, departure_confirm_seconds=None):
+    def __init__(self, config=None, loading_seconds=900, departure_confirm_seconds=None, history=None):
+        self.history = history
+        self.history_error = None
         self.config_error = None
         try:
             self.config = config if config is not None else load_config()
@@ -30,11 +33,13 @@ class OccupancyState:
                 if current:
                     current.update(missing=True, ocr_eligible=False, replacement=None)
                     if now - current['last_seen'] >= self.departure_confirm_seconds:
+                        self._record('departure', bay, current, current['last_seen'])
                         del self.sessions[bay]
                         return None
                 return current.copy() if current else None
             # A late reacquisition after a confirmed-length gap starts a new session.
             if current and current.get('missing') and now - current['last_seen'] >= self.departure_confirm_seconds:
+                self._record('departure', bay, current, current['last_seen'])
                 current = None
             if current and not self._same_vehicle(current, detection):
                 candidate = current.get('replacement')
@@ -43,12 +48,15 @@ class OccupancyState:
                 current.update(replacement=candidate, ocr_eligible=False, missing=False)
                 # Do not let transient class/box errors reset the clock or feed another vehicle's OCR.
                 if now - candidate['since'] >= self.departure_confirm_seconds:
+                    self._record('departure', bay, current, candidate['since'])
                     current = None
                 else:
                     return current.copy()
             if current is None:
                 current = {'id': uuid.uuid4().hex, 'started': now, 'route_state': TemporalRoute(self.config, now)}
                 self.sessions[bay] = current
+                current.update(vehicle_type=detection['vehicle_type'])
+                self._record('arrival', bay, current, now)
             current.update(last_seen=now, missing=False, replacement=None, ocr_eligible=True,
                            vehicle_type=detection['vehicle_type'], bbox=detection.get('bbox'))
             return current.copy()
@@ -67,7 +75,33 @@ class OccupancyState:
     def clear(self, bays):
         with self.lock:
             for bay in bays:
-                self.sessions.pop(bay, None)
+                current = self.sessions.pop(bay, None)
+                if current:
+                    self._record('interrupted', bay, current, time.monotonic())
+
+    def rebase(self, bays, assignments, now=None):
+        """A recording cycle starts with a baseline, not arrival/departure evidence.
+
+        Invalidate OCR identities. Leave interrupted history incomplete rather than
+        manufacturing departure timestamps at a recording boundary.
+        """
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            self.clear(bays)
+            history, self.history = self.history, None
+            try:
+                return {bay: self.update(bay, assignments.get(bay), now=now) for bay in bays}
+            finally:
+                self.history = history
+
+    def _record(self, event, bay, session, now):
+        if self.history:
+            try:
+                self.history(event, bay, session, now)
+                self.history_error = None
+            except Exception:
+                self.history_error = 'Occupancy history could not be saved. Check local storage.'
+                logging.getLogger(__name__).exception('Occupancy history write failed')
 
     def apply_ocr(self, bay, session_id, text, score, now=None, lines=None):
         now = time.monotonic() if now is None else now

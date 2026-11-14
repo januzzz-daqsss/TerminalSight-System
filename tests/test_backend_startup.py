@@ -56,31 +56,29 @@ with patch.object(sqlite3, 'connect', side_effect=AssertionError('import touched
         freeze.assert_called_once_with()
         main.assert_called_once_with()
 
-    def test_main_initializes_one_detector_and_two_camera_workers(self):
+    def test_main_initializes_one_detector_ocr_and_managed_cameras(self):
         from backend import server
         from backend.detection.detection_runtime import runtime
-        from backend.paths import SAMPLE_VIDEO_DIR
         with patch.dict(os.environ, {'TERMINALSIGHT_DISABLE_AI': '0'}), \
              patch.object(server, 'init_db') as initialize_db, \
              patch.object(runtime, 'initialize') as initialize_detector, \
              patch.object(server, 'OCRWorker') as ocr, \
              patch.object(server, 'ocr_worker', None), \
-             patch.object(server.threading, 'Thread') as thread, \
+             patch.object(server, 'camera_manager', None), \
+             patch.object(server.occupancy, 'history', None), \
+             patch.object(server, 'CameraManager') as manager, \
+             patch('backend.state.occupancy_history.OccupancyHistory') as history, \
              patch.object(server.app, 'run') as serve, patch('builtins.print'):
             server.main()
             initialize_db.assert_called_once_with()
             initialize_detector.assert_called_once_with()
             ocr.assert_called_once_with(server.occupancy)
             ocr.return_value.start.assert_called_once_with()
-            self.assertEqual(thread.call_count, 2)
-            self.assertEqual(thread.return_value.start.call_count, 2)
-            cameras = []
-            for call in thread.call_args_list:
-                self.assertIs(call.kwargs['target'], server.run_ai_background)
-                video, camera = call.kwargs['args']
-                self.assertEqual(Path(video).parent, SAMPLE_VIDEO_DIR)
-                cameras.append(camera)
-            self.assertCountEqual(cameras, ['northbound', 'southbound'])
+            manager.assert_called_once_with(server.ROOT, server.app.config['CAMERA_FEEDS_DATABASE'], server.occupancy, server.run_ai_background, ocr.return_value)
+            manager.return_value.start.assert_called_once_with()
+            manager.return_value.close.assert_called_once_with()
+            history.assert_called_once_with(server.DB_FILE)
+            ocr.return_value.stop.assert_called_once_with()
             serve.assert_called_once_with(port=5000, debug=False)
 
     def test_api_only_startup_does_not_start_inference_or_cameras(self):

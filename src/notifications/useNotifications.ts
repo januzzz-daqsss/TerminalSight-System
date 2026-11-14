@@ -26,6 +26,7 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
     const audio = useRef<AudioContext | null>(null);
     const lastSound = useRef(0);
     const previousSystem = useRef<SystemStatus | null>(null);
+    const bayEpochs = useRef(new Map<number, string | null | undefined>());
     const sound = useCallback(() => {
         const context = audio.current;
         const now = Date.now();
@@ -80,12 +81,18 @@ export function useNotifications(bays: Bay[], enabled: boolean, liveDataReady: b
         for (const bay of bays) {
             const prefix = `overstay:bay:${bay.id}`;
             const key = `${prefix}:${bay.sessionId || 'legacy'}`;
+            const changedEpoch = bayEpochs.current.has(bay.id) && bayEpochs.current.get(bay.id) !== bay.observationEpoch;
+            bayEpochs.current.set(bay.id, bay.observationEpoch);
+            if (changedEpoch) {
+                for (const active of gate.current.active) if (active.startsWith(`${prefix}:`)) resolve(active);
+            }
+            if (bay.monitored === false || bay.status === 'Unmonitored') continue;
             for (const active of gate.current.active) {
                 if ((active === prefix || active.startsWith(`${prefix}:`)) && active !== key) resolve(active);
             }
             if (bay.status === 'Overstaying') publish({ key, title: 'Overstay Violation', message: `Bay ${bay.id} (${bay.vehicleType || 'Vehicle'}) has exceeded its loading limit.`, priority: 'high', target: { kind: 'bay', id: bay.id } }, true);
             // Occupied may fluctuate around a threshold; only departure ends this episode.
-            if (bay.status === 'Available' && resolve(key)) publish({ key: `${key}:resolved`, title: 'Bay Cleared', message: `Bay ${bay.id} is available again.`, priority: 'medium', target: { kind: 'bay', id: bay.id } });
+            if (!changedEpoch && bay.status === 'Available' && resolve(key)) publish({ key: `${key}:resolved`, title: 'Bay Cleared', message: `Bay ${bay.id} is available again.`, priority: 'medium', target: { kind: 'bay', id: bay.id } });
         }
     }, [bays, enabled, liveDataReady, publish, resolve]);
     useEffect(() => {

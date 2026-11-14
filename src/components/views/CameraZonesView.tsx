@@ -9,6 +9,8 @@ import { SampleCoverageNotice } from '../ui/SampleCoverageNotice';
 import { SamplePlayer } from '../ui/SamplePlayer';
 import { RoiMappingPicker } from '../ui/RoiMappingPicker';
 import { IntegratedSamplePreview } from '../ui/IntegratedSamplePreview';
+import { OperationalCameraPreview } from '../ui/OperationalCameraPreview';
+import { operationalClient, type OperationalStatus } from '../../cameras/operationalCamera';
 
 const inputClass = 'w-full mt-1 rounded-lg border border-slate-300 bg-white p-2.5 focus-visible:outline-2 focus-visible:outline-emerald-600';
 const actionClass = 'rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed';
@@ -42,6 +44,8 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
     const [revision, setRevision] = useState(0);
+    const [operational, setOperational] = useState<OperationalStatus | null>(null);
+    const [operationalError, setOperationalError] = useState('');
     const [draft, setDraft] = useState<FeedDraft>(emptyFeed('sample'));
     const [editing, setEditing] = useState<string | null>(null);
     const [removing, setRemoving] = useState<Feed | null>(null);
@@ -50,6 +54,22 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
     const editor = useRef<HTMLDialogElement>(null);
     const picker = useRef<HTMLDialogElement>(null);
     const removal = useRef<HTMLDialogElement>(null);
+
+    useEffect(() => {
+        if (!editable) return;
+        let disposed = false, timer: ReturnType<typeof setTimeout>;
+        const poll = async () => {
+            try {
+                const state = await operationalClient().status();
+                if (!disposed) { setOperational(state); setOperationalError(''); }
+            } catch (e) {
+                if (!disposed) { setOperational(null); setOperationalError(e instanceof Error ? e.message : 'Operational monitoring unavailable.'); }
+            }
+            if (!disposed) timer = setTimeout(poll, 2000);
+        };
+        void poll();
+        return () => { disposed = true; clearTimeout(timer); };
+    }, [editable, revision]);
 
     useEffect(() => {
         if (!editable) return;
@@ -105,7 +125,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
             const result = await feedRequest<{ feed: Feed }>(editing ? `/${editing}` : '', editing ? 'PATCH' : 'POST', draft);
             if (editing === monitoringFeed) setMonitoringFeed(null);
             setFeeds(previous => editing ? previous.map(f => f.id === editing ? result.feed : f) : [...previous, result.feed]);
-            editor.current?.close(); setNotice('Feed configuration saved. Detection and terminal operations were not changed.');
+            editor.current?.close(); setNotice(draft.kind === 'sample' ? 'Feed saved. Valid mapped recordings are automatically monitored by the local camera manager.' : 'IP camera configuration saved. RTSP playback is not connected.');
         } catch (e) { setFormError(e instanceof Error ? e.message : 'Unable to save feed.'); }
         finally { setBusy(false); }
     };
@@ -123,7 +143,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
             await feedRequest(`/${removing.id}`, 'DELETE');
             if (removing.id === monitoringFeed) setMonitoringFeed(null);
             setFeeds(previous => previous.filter(f => f.id !== removing.id));
-            removal.current?.close(); setRemoving(null); setNotice('Feed removed. The original video and detector workers were not changed.');
+            removal.current?.close(); setRemoving(null); setNotice('Feed removed. Its worker will stop; the original video is preserved.');
         } catch (e) { setFormError(e instanceof Error ? e.message : 'Unable to remove feed.'); }
         finally { setBusy(false); }
     };
@@ -132,7 +152,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
 
     return <div className="space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
-            <div><h2 className="text-lg font-bold text-slate-800">Camera Zones</h2><p className="text-sm text-slate-500">Manage feed configurations separately from active detection.</p></div>
+            <div><h2 className="text-lg font-bold text-slate-800">Camera Zones</h2><p className="text-sm text-slate-500">Manage local feeds and monitor mapped recordings.</p></div>
             <div className="flex flex-wrap items-center gap-3">
                 {editable ? <DetectionSettings /> : <span className="text-sm text-slate-500">AI detection requires the local system</span>}
                 <span className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{DEMO_MODE ? 'Hosted demo: no camera connection' : localOnline ? 'Local Backend: Online' : 'Local Backend: Unavailable'}</span>
@@ -152,7 +172,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
                         className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><Plus size={17} />{mode === 'live' ? 'Add IP Camera' : 'Add Sample Feed'}</button>
                 </div>
             </div>
-            <p className="text-sm text-slate-600">{mode === 'live' ? 'Configuration only. RTSP playback and connection testing are not enabled. No network connection is attempted.' : 'Ordinary playback shows saved geometry only. Monitor recording starts one integrated AI preview automatically; other cards remain ordinary playback.'}</p>
+            <p className="text-sm text-slate-600">{mode === 'live' ? 'Configuration only. RTSP playback and connection testing are not enabled. No network connection is attempted.' : 'Valid mapped recordings are monitored automatically and update local bay occupancy, timers and OCR. Recordings without a mapping remain playback-only.'}</p>
             {mode === 'sample' && editable && legacyDisplays.some(d => d.hidden) && <details className="text-sm text-slate-500"><summary className="cursor-pointer">Hidden camera cards</summary><div className="flex flex-wrap gap-2 mt-2">{legacyDisplays.filter(d => d.hidden).map(d => <button key={d.id} type="button" className={actionClass} disabled={busy || loading || !!error} onClick={() => { void restoreDisplay(d); }}>Restore {d.name}</button>)}</div></details>}
             {!editable && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Read-only preview. Local administrator login is required to manage feeds. Real camera addresses and local recordings are not loaded here.</p>}
             {loading && <p role="status">Loading local feed configuration…</p>}
@@ -160,27 +180,32 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
             {notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
             {!loading && !displayedFeeds.length && mode === 'live' && <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center text-slate-500"><Video className="mx-auto mb-3" /><p>{editable ? 'No saved feeds in this mode. Add a configuration to get started.' : 'Sample layout only — no real feed configurations are exposed.'}</p></div>}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4" aria-label={mode === 'sample' ? 'Sample Demonstration feeds' : 'Live feed configurations'}>
-                {mode === 'sample' && <ProcessedSampleFeeds health={health} localOnline={localOnline} focusedCamera={focusedCamera} displays={legacyDisplays}
+                {mode === 'sample' && <ProcessedSampleFeeds health={health} localOnline={localOnline} focusedCamera={focusedCamera}
+                    displays={operational ? legacyDisplays.filter(d => operational.feeds.some(f => f.legacy && f.notificationId === d.id)) : legacyDisplays}
+                    operational={operational?.feeds} onOperationalChange={() => setRevision(n => n + 1)}
                     editable={editable && !busy && !loading && !error} onEdit={openLegacyEditor} onRemove={display => { setRemoving(null); setRemovingLegacy(display); setFormError(''); removal.current?.showModal(); }} />}
                 {displayedFeeds.map(feed => {
                 const video = videos.find(v => v.id === feed.videoId);
-                return <article key={feed.id} className="min-w-0 rounded-xl border border-slate-200 overflow-hidden">
+                const camera = operational?.feeds.find(item => item.id === feed.id);
+                return <article key={feed.id} id={camera ? `camera-${camera.notificationId}` : undefined} className="min-w-0 rounded-xl border border-slate-200 overflow-hidden">
                     <div className="p-3 space-y-2"><h3 className="font-semibold text-slate-800 break-words">{feed.name}</h3>
                         <p className="text-xs text-slate-500 capitalize">{feed.direction} · Bays {feed.bays.join(', ')}</p>
                         {feed.kind === 'live' ? <><p className="text-xs font-semibold text-amber-700">NOT CONNECTED · CONFIGURATION ONLY</p><p className="text-sm text-slate-600 break-all">{feed.address}</p><p className="text-xs text-slate-500">Transport: {feed.transport.toUpperCase()}</p></>
+                            : camera && editable ? <OperationalCameraPreview feed={camera} onChanged={() => setRevision(n => n + 1)} />
                             : video ? monitoringFeed === feed.id && editable
                                 ? <IntegratedSamplePreview key={feed.id} feedId={feed.id} name={feed.name} onStop={() => setMonitoringFeed(null)} />
                                 : <SamplePlayer key={video.id} video={video} autoPlay loop label={feed.name} roi={feed.roiMapping?.roi} />
                                 : <p className="text-sm text-amber-700">Recording unavailable. Select another video or restore the original file.</p>}
                         {feed.kind === 'sample' && feed.roiStatus !== 'valid' && <p className="text-xs text-slate-500">{feed.roiStatus === 'invalid' ? 'Saved mapping is invalid or unavailable. Edit the feed to select a compatible mapping.' : 'No parking-bay mapping. Video playback only.'}</p>}
-                        {feed.kind === 'sample' && feed.roiStatus === 'valid' && !canMonitorRecording(feed) && <p className="text-xs text-slate-500">ROI geometry loaded. AI integration for this mapping is pending.</p>}
+                        {feed.kind === 'sample' && feed.roiStatus === 'valid' && !camera && <p className="text-xs text-slate-500">{operationalError || 'Waiting for the local operational camera manager.'}</p>}
                         <div className="flex flex-wrap gap-3 text-xs"><button type="button" className="rounded p-1 hover:bg-emerald-50 disabled:opacity-50" disabled={!editable || busy || loading || !!error} onClick={() => openEditor(feed)}><Pencil className="inline mr-1" size={14} />Edit</button>
                             <button type="button" className="rounded p-1 text-red-700 hover:bg-red-50 disabled:opacity-50" disabled={!editable || busy || loading || !!error} onClick={() => { setRemovingLegacy(null); setRemoving(feed); setFormError(''); removal.current?.showModal(); }}><Trash2 className="inline mr-1" size={14} />Remove</button>
-                            {editable && video && canMonitorRecording(feed) && monitoringFeed !== feed.id && <button type="button" className="ml-auto rounded border border-emerald-300 px-2 py-1 text-emerald-800" onClick={() => setMonitoringFeed(feed.id)}>Monitor recording</button>}
+                            {editable && !camera && video && canMonitorRecording(feed) && monitoringFeed !== feed.id && <button type="button" className="ml-auto rounded border border-emerald-300 px-2 py-1 text-emerald-800" onClick={() => setMonitoringFeed(feed.id)}>Open diagnostic preview</button>}
                         </div>
                     </div>
                 </article>;
             })}</div>
+            {editable && (operational?.message || operational?.historyError) && <p role="alert" className="text-sm text-amber-800 mt-3">{operational.message || operational.historyError}</p>}
         </section>
 
         {editable && <>
@@ -212,7 +237,7 @@ export function CameraZonesView({ health, localOnline, focusedCamera, canConfigu
                 <div className="flex justify-end mt-4"><button type="button" disabled={!selected} className="rounded-lg bg-emerald-600 px-4 py-2 text-white font-semibold disabled:opacity-50" onClick={() => { setDraft({ ...draft, videoId: selectedVideo, ...(selectedVideo !== draft.videoId ? { roiId: '' } : {}) }); picker.current?.close(); }}>Use selected video</button></div>
             </dialog>
             <dialog ref={removal} className={dialogClass} aria-labelledby="remove-feed-title" onCancel={e => { if (busy) e.preventDefault(); }}>
-                <h3 id="remove-feed-title" className="font-bold text-lg">{removingLegacy ? 'Hide camera card?' : 'Remove feed configuration?'}</h3><p className="my-3 text-sm">{removingLegacy ? `Hide “${removingLegacy.name}” from this grid only? Its operational detection, OCR, occupancy timers and announcements will continue. No worker is stopped, removed or reconfigured. Restore it later under Hidden camera cards.` : `Remove “${removing?.name || ''}” from the list? The original video and existing detector workers will not be deleted or changed.`}</p>
+                <h3 id="remove-feed-title" className="font-bold text-lg">{removingLegacy ? 'Hide camera card?' : 'Remove feed configuration?'}</h3><p className="my-3 text-sm">{removingLegacy ? `Hide “${removingLegacy.name}” from this grid only? Its operational detection, OCR, occupancy timers and announcements will continue. No worker is stopped, removed or reconfigured. Restore it later under Hidden camera cards.` : `Remove “${removing?.name || ''}” from the list? Its operational worker will stop and its bays will be reassigned or marked unmonitored. The original video will not be deleted.`}</p>
                 {formError && <p role="alert" className="text-sm text-red-700 mb-3">{formError}</p>}
                 <div className="flex justify-end gap-2"><button type="button" disabled={busy} className={actionClass} onClick={() => removal.current?.close()}>Cancel</button><button type="button" disabled={busy} className="rounded-lg bg-red-600 px-4 py-2 text-white disabled:opacity-50" onClick={() => { void remove(); }}>{busy ? 'Saving…' : removingLegacy ? 'Hide card only' : 'Remove feed'}</button></div>
             </dialog>

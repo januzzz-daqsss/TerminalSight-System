@@ -84,7 +84,10 @@ function TerminalApp({ hostedLogout, demoVisitor = false }: { hostedLogout?: () 
                 })));
                 setLiveDataReady(true);
             } catch {
-                if (!stopped) setLiveDataReady(false);
+                if (!stopped) {
+                    setLiveDataReady(false);
+                    setBays(previous => previous.map(bay => ({ ...bay, monitored: false })));
+                }
             } finally {
                 clearTimeout(timeout);
                 if (!stopped) timer = setTimeout(poll, 1000);
@@ -103,7 +106,7 @@ function TerminalApp({ hostedLogout, demoVisitor = false }: { hostedLogout?: () 
 
         let updated = false;
         const nextBays = bays.map((bay) => {
-            if (bay.status === "Overstaying" && !bay.audioPlayed) {
+            if (bay.monitored === true && bay.status === "Overstaying" && !bay.audioPlayed) {
                 const utterance = new SpeechSynthesisUtterance(
                     `Attention. Bay ${bay.id}, ${bay.vehicleType || "Vehicle"}, you have exceeded the loading limit. Please depart immediately.`,
                 );

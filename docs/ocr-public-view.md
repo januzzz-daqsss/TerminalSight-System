@@ -1,14 +1,20 @@
 # OCR route recognition and the two public displays
 
+Operational configured feeds now share this OCR pipeline across up to ten bays.
+See [Operational monitoring](operational-multibay.md) for dynamic coverage, the
+ten-bay FIFO crop queue, recording-loop resets and current limitations. Historical
+Bay 1/Bay 6-only descriptions below describe the earlier sample setup.
+
 ## Current sample coverage
 
-Both public screens identify the source as a sample-video demonstration. Only
-Bay 1 and Bay 6 have configured detection polygons. The other eight bays display
-**Not monitored**, without routes, timers or availability claims. Driver ticker
+Both public screens identify the source as a sample-video demonstration. Coverage
+comes from healthy operational camera workers and can include all ten bays.
+Unmapped, offline or stale bays display **Not monitored**, without routes, timers
+or availability claims. Driver ticker
 messages include only covered bays and stop issuing entry/departure instructions
 when updates are unavailable. Covered bays retain the existing route formatting,
 status rules and server-provided timer values. Coverage presentation is defined in
-`src/utils/monitoringCoverage.ts`; it must be updated when camera coverage expands.
+`src/utils/monitoringCoverage.ts`, which consumes the backend's `monitored` flag.
 
 ## Implemented
 
@@ -87,7 +93,8 @@ automatic persistence of vehicle visits remains a separate unfinished integratio
    ends or OCR fails. Overlays are drawn after taking the clean OCR frame copy, so
    their labels cannot be read back into recognition.
 4. At most one crop per bay every 1.5 seconds is submitted. A separate worker keeps at
-   most two pending jobs, replacing obsolete work instead of blocking YOLO.
+   most ten pending jobs, one per bay. Replacing an obsolete crop preserves FIFO
+   order so each bay gets a turn without blocking detection.
 5. OCR lines below 0.65 text confidence are discarded. Text is uppercased, punctuation
    normalized and common digit/letter confusion corrected (for example PANAB0).
 6. Up to 24 observations over 30 seconds are compared with configured route aliases.
@@ -256,9 +263,9 @@ The automated fixtures verify Departing/Delayed boundaries without waiting 15 mi
   21 seconds did not reset the route/session on reacquisition at 22.5 seconds.
   Some individual reads are still incorrect; temporal aggregation remains essential.
   These are sample-video timestamps, not a promised real-time recognition latency.
-- Only the existing Bay 1 and Bay 6 polygons have real detector coverage. The other
-  bays retain their existing available placeholders; configure cameras/polygons before
-  relying on them operationally.
+- These historical measurements covered the original Bay 1 and Bay 6 recordings.
+  Current coverage depends on configured, healthy workers. They do not establish
+  OCR accuracy for the newer CCTV angles.
 - The supplied clips show static windshield signs, not a validated scrolling LED sign.
   Fragment aggregation passed synthetic sequence tests; real LED refresh/flicker, glare,
   perspective and scrolling speed still require footage-specific calibration.

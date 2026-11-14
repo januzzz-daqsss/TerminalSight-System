@@ -36,7 +36,7 @@ export function RoiMappingPicker({ draft, onChange }: { draft: FeedDraft; onChan
             </select>
         </label>
         <button type="button" className="font-semibold text-emerald-800 underline disabled:opacity-50" disabled={!draft.videoId || loading} onClick={() => setRevision(value => value + 1)}>{loading ? 'Checking mappings…' : 'Refresh mapping list'}</button>
-        <p>Choosing a mapping sets its bay labels and direction. This saves geometry only; it does not activate detection.</p>
+        <p>Choosing a mapping sets its bay labels and direction. Saving a valid mapped feed enables local operational monitoring, including occupancy, timers and OCR.</p>
         {message && <p role="status" className="text-amber-800">{message}</p>}
         {selected?.warnings.map(warning => <p key={warning} className="text-amber-800">Warning: {warning}</p>)}
         <details><summary className="cursor-pointer font-semibold">Create or register a mapping</summary>

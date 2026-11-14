@@ -1,5 +1,9 @@
 # Camera Zones feed configurations
 
+Current operational multi-bay behavior supersedes the diagnostic-only checkpoints
+below. See [Operational monitoring](operational-multibay.md) for automatic startup,
+exclusive bay ownership, OCR, history and ThinkPad rehearsal instructions.
+
 ## Current integrated-monitoring coverage
 
 The pilot-only restriction described in the historical checkpoints below has been

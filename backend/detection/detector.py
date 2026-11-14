@@ -22,7 +22,7 @@ slot_arrays_nb = {name: np.array(coords, np.int32) for name, coords in SLOTS_NOR
 OCCUPANCY_THRESHOLD = 0.20
 
 def analyze_frame(frame, camera="southbound", include_detections=False, annotate=True, *, roi=None):
-    """Legacy defaults remain fixed; optional prepared geometry is diagnostic-only."""
+    """Legacy defaults remain fixed; callers own publication of prepared geometry results."""
     if roi is not None and frame.shape[:2] != (roi.height, roi.width):
         raise ValueError('Frame dimensions do not match the prepared ROI.')
     polys = roi.polygons if roi is not None else (slot_polygons_sb if camera == "southbound" else slot_polygons_nb)
@@ -79,7 +79,7 @@ def draw_slots(frame, camera, statuses, *, roi=None):
     arrays = roi.arrays if roi is not None else (slot_arrays_sb if camera == "southbound" else slot_arrays_nb)
     for name, points in arrays.items():
         status = statuses.get(name, "AVAILABLE")
-        color = (94, 197, 34) if status == "AVAILABLE" else (68, 68, 239)  # #22c55e / #ef4444, BGR
+        color = {'AVAILABLE': (94, 197, 34), 'OCCUPIED': (68, 68, 239)}.get(status, (184, 163, 148))
         pts = points.reshape((-1, 1, 2))
         cv2.polylines(frame, [pts], isClosed=True, color=color, thickness=3)
         cv2.putText(frame, f"{name}: {status}", (pts[0][0][0], pts[0][0][1] - 10),

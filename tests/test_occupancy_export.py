@@ -8,7 +8,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -94,6 +94,8 @@ class OccupancyExportTests(unittest.TestCase):
 
     def test_public_bays_share_server_timer_and_hide_debug(self):
         session = self.api.occupancy.update('Bay_1', {'vehicle_type': 'UV Express'})
+        self.api.camera_manager = Mock()
+        self.api.camera_manager.bay_snapshot.side_effect = self.api.occupancy.snapshot
         response = self.client.get('/api/bays')
         self.assertEqual(response.status_code, 200)
         bay = response.json['bays'][0]

@@ -22,9 +22,9 @@ export function PublicView({ bays, now, live }: { bays: Bay[]; now: Date; live: 
                     <th className="px-5 pb-2">Bay</th><th className="px-5 pb-2">Route / Destination</th><th className="px-5 pb-2">Vehicle</th><th className="px-5 pb-2">Status</th><th className="px-5 pb-2 text-right">Time</th>
                 </tr></thead>
                 <tbody>{bays.map(bay => {
-                    if (!isSampleMonitoredBay(bay.id)) return <tr key={bay.id} className="h-[6.5vh] bg-slate-900 text-slate-400">
+                    if (!isSampleMonitoredBay(bay)) return <tr key={bay.id} className="h-[6.5vh] bg-slate-900 text-slate-400">
                         <td className="rounded-l-xl border-l-4 border-slate-600 px-5 py-3 text-2xl font-black xl:text-3xl">{String(bay.id).padStart(2, '0')}</td>
-                        <td className="px-5 py-3 text-lg" colSpan={2}>Outside sample-camera coverage</td>
+                        <td className="px-5 py-3 text-lg" colSpan={2}>Camera offline or no current monitoring</td>
                         <td className="px-5 py-3 text-base font-bold xl:text-xl">NOT MONITORED</td>
                         <td className="rounded-r-xl px-5 py-3 text-right text-2xl">—</td>
                     </tr>;

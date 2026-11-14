@@ -176,7 +176,7 @@ export function AnalyticsPrintReport({ period, data, violations, generatedAt }: 
                 <dl className="report-scope-list">
                     <div><dt>Purpose</dt><dd>Demonstrate the report structure, charts and violation register for TerminalSight.</dd></div>
                     <div><dt>Sample values</dt><dd>The indicators and charts use the selected example dataset. The register uses a separate fixed list of example entries; it is not a breakdown of the violation total on page 1.</dd></div>
-                    <div><dt>Current coverage</dt><dd>The current sample-camera setup monitors Bay 1 and Bay 6. Example register entries for other bays are not evidence of camera coverage.</dd></div>
+                    <div><dt>Current coverage</dt><dd>Camera coverage depends on healthy operational feeds. This example register is not evidence of current camera coverage.</dd></div>
                     <div><dt>Saved records</dt><dd>This report is separate from the saved occupancy CSV export. Recent camera detections may not appear in that export, which is not a complete terminal history.</dd></div>
                 </dl>
             </section>

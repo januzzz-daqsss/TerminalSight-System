@@ -1,7 +1,10 @@
-export type BayState = "Available" | "Occupied" | "Overstaying";
+export type BayState = "Available" | "Occupied" | "Overstaying" | "Unmonitored";
 export type VehicleClass = "Bus" | "UV Express";
 
 export interface Bay {
+  monitored?: boolean;
+  cameraId?: string | null;
+  observationEpoch?: string | null;
   id: number;
   type: "Northbound" | "Southbound";
   status: BayState;

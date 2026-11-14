@@ -183,7 +183,7 @@ class IntegratedTests(unittest.TestCase):
         result = {**s.result, 'generation': 3, 'seconds': 5, 'submitted': 100}
         self.assertEqual(freshness(result, 3, 5.2, 100.5), (True, True))
         self.assertEqual(freshness(result, 3, 6, 101), (True, False))
-        self.assertEqual(freshness(result, 3, 5, 103), (False, False))
+        self.assertEqual(freshness(result, 3, 5, 121), (False, False))
         self.assertEqual(freshness(result, 4, 5, 100), (False, False))
         raw = np.zeros((100, 100, 3), np.uint8)
         rendered, valid = render_overlay(raw, s.roi, result, 3, 5, 100)

@@ -4,20 +4,24 @@ import { DEMO_MODE } from '../../demo';
 import { defaultLegacyDisplays, legacyVideo, type LegacyDisplay } from '../../cameras/feedApi';
 import { SamplePlayer } from './SamplePlayer';
 import { MediaViewport } from './MediaViewport';
+import { OperationalCameraPreview } from './OperationalCameraPreview';
+import type { OperationalFeed } from '../../cameras/operationalCamera';
 
 // Display overrides never determine the source URL, worker identity or physical bay.
-export function ProcessedSampleFeeds({ health, localOnline, focusedCamera, displays = defaultLegacyDisplays, editable = false, onEdit, onRemove }: {
+export function ProcessedSampleFeeds({ health, localOnline, focusedCamera, displays = defaultLegacyDisplays, editable = false, onEdit, onRemove, operational, onOperationalChange }: {
     health: CameraHealth[]; localOnline: boolean; focusedCamera?: number; displays?: LegacyDisplay[]; editable?: boolean;
     onEdit?: (display: LegacyDisplay) => void; onRemove?: (display: LegacyDisplay) => void;
+    operational?: OperationalFeed[]; onOperationalChange?: () => void;
 }) {
     return <>{displays.filter(display => !display.hidden).map(display => {
         const { id, name } = display;
+        const camera = operational?.find(f => f.legacy && f.notificationId === id);
         const state = DEMO_MODE ? 'Not connected in hosted demo' : !localOnline ? 'Backend unavailable' : health.find(c => c.id === id)?.state || 'Not connected';
         return <article key={id} id={`camera-${id}`} tabIndex={-1} aria-label={name}
             className={`min-w-0 rounded-xl overflow-hidden border bg-white ${focusedCamera === id ? 'outline-4 outline-sky-500 border-sky-500' : 'border-slate-200'}`}>
             <div className="p-3"><h3 className="font-semibold text-slate-800 break-words">{name}</h3>
                 <p className="text-xs text-slate-500 capitalize">{display.direction} · Bays {display.bays.join(', ')}</p></div>
-            {!DEMO_MODE && state === 'Live' ? <MediaViewport label={name}>
+            {!DEMO_MODE && camera ? <OperationalCameraPreview feed={{ ...camera, name }} onChanged={onOperationalChange} /> : !DEMO_MODE && state === 'Live' ? <MediaViewport label={name}>
                 <img className="absolute inset-0 h-full w-full object-contain" alt={`${name} processed sample video`} src={`/video_feed/${id === 1 ? 'northbound' : 'southbound'}_cam1`} />
             </MediaViewport> : !DEMO_MODE && state === 'Disabled' ? <SamplePlayer video={legacyVideo(id)} autoPlay loop label={name} />
                 : <div className="aspect-video bg-slate-950 flex flex-col justify-center items-center text-slate-400 p-6"><Video className="mb-3" /><p>{state}</p></div>}

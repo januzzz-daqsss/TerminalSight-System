@@ -89,7 +89,7 @@ test('ROI editor preserves legacy associations and provides explicit unmapped pl
     assert.equal(Object.hasOwn(api.emptyFeed('live'), 'roiId'), false);
     const fresh = renderToStaticMarkup(createElement(RoiMappingPicker, { draft: api.emptyFeed('sample'), onChange: () => {} }));
     for (const label of ['Parking-bay mapping', 'No mapping', 'video playback only', 'Refresh mapping list',
-        'config/roi', 'browser cannot launch', 'does not activate detection']) assert.ok(fresh.includes(label), label);
+        'config/roi', 'browser cannot launch', 'Saving a valid mapped feed enables local operational monitoring']) assert.ok(fresh.includes(label), label);
     assert.ok(!fresh.includes('Keep existing recording association'));
     const { roiId, ...legacy } = api.emptyFeed('sample');
     const existing = renderToStaticMarkup(createElement(RoiMappingPicker, { draft: legacy, onChange: () => {} }));
